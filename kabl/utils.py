@@ -198,9 +198,15 @@ def where_and_when(datafile):
     Filename=datafile.split("/")[-1]
     daily,mpl,siteID,yyyymmdd=Filename.split("_")
     
-    location=sites_id2loc[siteID]
-    lat=sites_id2lat[siteID]
-    lon=sites_id2lon[siteID]
+    try:
+        location=sites_id2loc[siteID]
+        lat=sites_id2lat[siteID]
+        lon=sites_id2lon[siteID]
+    except KeyError:
+        location='Unknown'
+        lat=np.nan
+        lon=np.nan
+    
     day=dt.datetime(int(yyyymmdd[0:4]),int(yyyymmdd[4:6]),int(yyyymmdd[6:8])) 
     return location,day,lat,lon
     

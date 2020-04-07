@@ -99,9 +99,11 @@ rsdex=np.where(np.logical_and(t_rs>t_values[0],t_rs<t_values[-1]))[0]
 
 # Plot
 #------
+location,day,lat,lon=utils.where_and_when(lidarFile)
+titre="Lidar backscatter | "+location+" | "+day.strftime('%Y/%m/%d')
 graphics.blhs_over_data(t_values,z_values,rcs_1,
             [blh_kabl,blh_mnf[:,0],blh_adabl],['KABL','INDUS','ADABL'],
             blh_rs=[t_rs[rsdex],blh_rs[rsdex]],
-            storeImages=False)
+            titre=titre, storeImages=False)
 
 input("\n Press Enter to exit (close down all figures)\n")

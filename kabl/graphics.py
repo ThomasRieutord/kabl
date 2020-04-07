@@ -227,7 +227,7 @@ def blhs_over_data(t_values,z_values,bckgrd_data,blhs,blhs_names=None,blh_rs=Non
     day = dt.datetime.utcfromtimestamp(t_values[1]).strftime('%Y/%m/%d')
     date = dt.datetime.utcfromtimestamp(t_values[1]).strftime('%Y%m%d')
     if titre is None:
-        titre = "Lidar backscatter | TRAPPES "+day
+        titre = "Lidar backscatter | "+day
     
     fig=plt.figure(figsize=(10,5))
     plt.pcolormesh(t_values,z_values,bckgrd_data.T,alpha = 0.8,cmap='rainbow',vmin=-0.1, vmax=0.8)

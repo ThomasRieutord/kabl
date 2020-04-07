@@ -1,6 +1,6 @@
-numpy>=1.14.0
-pandas>=0.24.0
-scikit-learn=0.20.3
+numpy
+pandas
 scipy
 matplotlib
 netCDF4
+scikit-learn==0.20.3

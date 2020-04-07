@@ -6,7 +6,7 @@ What is KABL?
 KABL is a free software to derive atmospheric boundary layer height from backscatter profiles measured by aerosol lidars or ceilometers.
 It is based on K-means algorithm: it automatically groups the points of the profile and identify one these groups as the boundary layer.
 
-![Alt](example.png)
+![Alt](examples/example.png)
 
 How to use it?
 ---------------
