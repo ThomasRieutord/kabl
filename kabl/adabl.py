@@ -87,12 +87,13 @@ def add_blhs_to_netcdf(ncFile, blhs, blhs_names):
 
     return "Fields " + str(blhs_names) + " successfully added to " + ncFile
 
+
 def prepare_supervised_dataset(
     dataFiles: list,
     refFiles: list,
-    saveInCSV: bool=False,
-    outputFile: str="adabl_supervised_dataset.csv",
-    plot_on: bool=False
+    saveInCSV: bool = False,
+    outputFile: str = "../artifacts/labelled-datasets/adabl_supervised_dataset.csv",
+    plot_on: bool = False,
 ):
     """Train the classifier ADABL
     
@@ -102,85 +103,86 @@ def prepare_supervised_dataset(
     
     [OUT]
     """
-    
-    RCS0=[]
-    RCS1=[]
-    RCS2=[]
-    SEC0=[]
-    ALTI=[]
-    y=[]
+
+    RCS0 = []
+    RCS1 = []
+    RCS2 = []
+    SEC0 = []
+    ALTI = []
+    y = []
     for i in range(len(dataFiles)):
         dataFile = dataFiles[i]
         refFile = refFiles[i]
-        print("Reading file ",dataFile,'with reference',refFile)
-        t_values,z_values,rcs_0,rcs_1,rcs_2,blh_mnf=utils.extract_data(
-            dataFile,
-            max_height=4620,
-            to_extract=['rcs_0','rcs_1','rcs_2','pbl']
+        print("Reading file ", dataFile, "with reference", refFile)
+        t_values, z_values, dat = utils.extract_data(
+            dataFile, max_height=4620, to_extract=["rcs_0", "rcs_1", "rcs_2", "pbl"]
         )
-        
-        blh_ref=pd.read_csv(refFile,delimiter=',',header=0)
-        blh_ref=blh_ref['blh_ref'].values 
-        
+        rcs_0 = dat["rcs_0"]
+        rcs_1 = dat["rcs_1"]
+        rcs_2 = dat["rcs_2"]
+        blh_mnf = dat["pbl"]
+
+        blh_ref = pd.read_csv(refFile, delimiter=",", header=0)
+        blh_ref = blh_ref["blh_ref"].values
+
         if plot_on:
-            graphics.blhs_over_data(t_values,z_values,rcs_0,blh_ref)
-        
+            graphics.blhs_over_data(t_values, z_values, rcs_0, blh_ref)
+
         # Input
-        #-------
-        sec_intheday=np.mod(t_values,24*3600)
-        Nt,Nz=rcs_1.shape
-        
-        rcs0loc=rcs_0.ravel()
-        rcs0loc[rcs0loc<=0]=1e-5
+        # -------
+        sec_intheday = np.mod(t_values, 24 * 3600)
+        Nt, Nz = rcs_1.shape
+
+        rcs0loc = rcs_0.ravel()
+        rcs0loc[rcs0loc <= 0] = 1e-5
         RCS0.append(np.log10(rcs0loc))
-        
-        rcs1loc=rcs_1.ravel()
-        rcs1loc[rcs1loc<=0]=1e-5
+
+        rcs1loc = rcs_1.ravel()
+        rcs1loc[rcs1loc <= 0] = 1e-5
         RCS1.append(np.log10(rcs1loc))
-        
-        rcs2loc=rcs_2.ravel()
-        rcs2loc[rcs2loc<=0]=2e-5
+
+        rcs2loc = rcs_2.ravel()
+        rcs2loc[rcs2loc <= 0] = 2e-5
         RCS2.append(np.log10(rcs2loc))
-        
-        SEC0.append(np.repeat(sec_intheday,Nz))
-        ALTI.append(np.tile(z_values,Nt))
-        
+
+        SEC0.append(np.repeat(sec_intheday, Nz))
+        ALTI.append(np.tile(z_values, Nt))
+
         # Output
-        #--------
+        # --------
         yday = []
         for t in range(Nt):
-            yloc=np.zeros(Nz)
-            yloc[z_values>blh_ref[t]]=1
+            yloc = np.zeros(Nz)
+            yloc[z_values > blh_ref[t]] = 1
             yday.append(yloc)
-        
-        y.append(np.array(yday,dtype=int).ravel())
-        
+
+        y.append(np.array(yday, dtype=int).ravel())
+
     # Create dataframe
-    #------------------
+    # ------------------
     df = pd.DataFrame(
-            {
-                'sec0':np.concatenate(SEC0),
-                'alti':np.concatenate(ALTI),
-                'rcs0':np.concatenate(RCS0),
-                'rcs1':np.concatenate(RCS1),
-                'rcs2':np.concatenate(RCS2),
-                'isBL':np.concatenate(y)
-            }
-        )
-    
+        {
+            "sec0": np.concatenate(SEC0),
+            "alti": np.concatenate(ALTI),
+            "rcs0": np.concatenate(RCS0),
+            "rcs1": np.concatenate(RCS1),
+            "rcs2": np.concatenate(RCS2),
+            "isBL": np.concatenate(y),
+        }
+    )
+
     if saveInCSV:
-        df.to_csv(outputFile,index=False)
-        print("Dataset for ADABL is saved in",outputFile)
-    
+        df.to_csv(outputFile, index=False)
+        print("Dataset for ADABL is saved in", outputFile)
+
     return df
 
 
 def train_adabl(
     dataset,
-    algo: str='AdaBoost',
-    predictors: list=['sec0','alti','rcs0'],
-    outputFile: str="adabl_supervised_dataset.csv",
-    plot_on: bool=False
+    algo: str = "AdaBoost",
+    predictors: list = ["sec0", "alti", "rcs0"],
+    plot_on: bool = False,
 ):
     """Train the classifier ADABL
     
@@ -190,58 +192,66 @@ def train_adabl(
     
     [OUT]
     """
-    
-    if isinstance(dataset,pd.DataFrame):
+
+    if isinstance(dataset, pd.DataFrame):
         df = dataset
     elif os.path.isfile(dataset):
         df = pd.read_csv(dataset)
     else:
-        raise ValueError("Argument 'dataset' must be either a path or a pandas.DataFrame")
-    
-    X = df.loc[:,predictors].values
-    y = df.loc[:,'isBL'].values
-    
+        raise ValueError(
+            "Argument 'dataset' must be either a path or a pandas.DataFrame"
+        )
+
+    X = df.loc[:, predictors].values
+    y = df.loc[:, "isBL"].values
+
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
-    
+
     # Instantiate classifiers
     # -----------------------
-    if algo in ['rf','RandomForest','RandomForestClassifier']:
+    if algo in ["rf", "RandomForest", "RandomForestClassifier"]:
         from sklearn.ensemble import RandomForestClassifier
-        clf = RandomForestClassifier(n_estimators=50,max_depth=3)
-    elif algo in ['knn','nearestneighbors','KNeighborsClassifier']:
+
+        clf = RandomForestClassifier(n_estimators=50, max_depth=3)
+    elif algo in ["knn", "nearestneighbors", "KNeighborsClassifier"]:
         from sklearn.neighbors import KNeighborsClassifier
+
         clf = KNeighborsClassifier(n_neighbors=6)
-    elif algo in ['dt','DecisionTree','DecisionTreeClassifier']:
+    elif algo in ["dt", "DecisionTree", "DecisionTreeClassifier"]:
         from sklearn.tree import DecisionTreeClassifier
+
         clf = DecisionTreeClassifier(max_depth=5)
-    elif algo in ['ab','adab','AdaBoost','AdaBoostClassifier']:
+    elif algo in ["ab", "adab", "AdaBoost", "AdaBoostClassifier"]:
         from sklearn.ensemble import AdaBoostClassifier
         from sklearn.tree import DecisionTreeClassifier
-        clf = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=5),n_estimators=200)
-    elif algo in ['ls','LabelSpreading']:
+
+        clf = AdaBoostClassifier(
+            base_estimator=DecisionTreeClassifier(max_depth=5), n_estimators=200
+        )
+    elif algo in ["ls", "LabelSpreading"]:
         from sklearn.semi_supervised import LabelSpreading
-        clf = LabelSpreading(kernel='knn')
+
+        clf = LabelSpreading(kernel="knn")
     else:
-        raise ValueError("Not supported algorithm:",algo)
-        
-    
+        raise ValueError("Not supported algorithm:", algo)
+
     # Fit supervised model
     # ---------------------
-    print("Fitting",clf)
-    clf.fit(X,y)
-    
-    return clf,scaler
+    print("Fitting", clf)
+    clf.fit(X, y)
+
+    return clf, scaler
 
 
 def traintest_adabl(
     dataset,
-    predictors: list=['sec0','alti','rcs0'],
-    cv_test_size: float=0.2,
-    n_random_splits: int=10,
-    plot_on: bool=False
+    predictors: list = ["sec0", "alti", "rcs0"],
+    cv_test_size: float = 0.2,
+    n_random_splits: int = 10,
+    plot_on: bool = False,
 ):
-    '''Train and test several algorithms on the specified dataset.
+    """Train and test several algorithms on the specified dataset.
     The outputs are thus the performance of each algorithms.
     
     List of tested algorithms: RandomForestClassifier,KNeighborsClassifier,
@@ -258,86 +268,85 @@ def traintest_adabl(
         - accuracies (np.array[5,n_random_splits]): mean accuracy score (proportion of well classified individuals, the closer to 1 the better) for each classifier and each random split 
         - chronos (np.array[5,n_random_splits]): time to train the classifier and compute the accuracy score
         - classifiers_keys (list[5] of str): names of the tested classifiers
-    '''
-    
+    """
+
     from sklearn.model_selection import train_test_split
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.neighbors import KNeighborsClassifier
     from sklearn.tree import DecisionTreeClassifier
     from sklearn.ensemble import AdaBoostClassifier
     from sklearn.semi_supervised import LabelSpreading
-    
+
     # Load dataset
     # ------------
-    
-    if isinstance(dataset,pd.DataFrame):
+
+    if isinstance(dataset, pd.DataFrame):
         df = dataset
     elif os.path.isfile(dataset):
         df = pd.read_csv(dataset)
     else:
-        raise ValueError("Argument 'dataset' must be either a path or a pandas.DataFrame")
-    
-    X = df.loc[:,predictors].values
-    y = df.loc[:,'isBL'].values
-    
-    
+        raise ValueError(
+            "Argument 'dataset' must be either a path or a pandas.DataFrame"
+        )
+
+    X = df.loc[:, predictors].values
+    y = df.loc[:, "isBL"].values
+
     # Normalisation
     # -------------
-    
+
     scaler = StandardScaler()
     X = scaler.fit_transform(X)
-    
-    
+
     # Instantiate classifiers
     # -----------------------
-    n_weaks=200
-    tree_depth=5
-    
-    rfc = RandomForestClassifier(n_estimators=n_weaks,max_depth=tree_depth)
-    knn=KNeighborsClassifier(n_neighbors=6)
+    n_weaks = 200
+    tree_depth = 5
+
+    rfc = RandomForestClassifier(n_estimators=n_weaks, max_depth=tree_depth)
+    knn = KNeighborsClassifier(n_neighbors=6)
     dtc = DecisionTreeClassifier(max_depth=tree_depth)
-    abc = AdaBoostClassifier(base_estimator=DecisionTreeClassifier(max_depth=tree_depth),n_estimators=n_weaks)
-    lsc = LabelSpreading(kernel='knn')
-    
-    
+    abc = AdaBoostClassifier(
+        base_estimator=DecisionTreeClassifier(max_depth=tree_depth),
+        n_estimators=n_weaks,
+    )
+    lsc = LabelSpreading(kernel="knn")
+
     # Summarize performances
     # ----------------------
-    
-    print('TRAINING CLASSIFIERS...')
-    classifiers =[rfc,knn,dtc,abc,lsc]
-    classifiers_keys =[str(clf).split('(')[0] for clf in classifiers]
-    chronos = np.zeros((len(classifiers),n_random_splits))
-    accuracies = np.zeros((len(classifiers),n_random_splits))
-    
+
+    print("TRAINING CLASSIFIERS...")
+    classifiers = [rfc, knn, dtc, abc, lsc]
+    classifiers_keys = [str(clf).split("(")[0] for clf in classifiers]
+    chronos = np.zeros((len(classifiers), n_random_splits))
+    accuracies = np.zeros((len(classifiers), n_random_splits))
+
     for icl in range(len(classifiers)):
         clf = classifiers[icl]
-        print("Classifier",icl,"/",len(classifiers),classifiers_keys[icl])
+        print("Classifier", icl, "/", len(classifiers), classifiers_keys[icl])
         for ird in range(n_random_splits):
             X_train, X_test, y_train, y_test = train_test_split(
-                X,
-                y,
-                test_size=cv_test_size,
-                random_state=ird
+                X, y, test_size=cv_test_size, random_state=ird
             )
-            
-            t0=time.time()      #::::::
-            clf.fit(X_train,y_train)
-            accuracies[icl,ird]=clf.score(X_test,y_test)
-            t1=time.time()      #::::::
-            chronos[icl,ird]=t1-t0
-    
-    if plot_on:
-        graphics.estimator_quality(accuracies,chronos,classifiers_keys)
-    
-    return accuracies,chronos,classifiers_keys
 
-    
+            t0 = time.time()  #::::::
+            clf.fit(X_train, y_train)
+            accuracies[icl, ird] = clf.score(X_test, y_test)
+            t1 = time.time()  #::::::
+            chronos[icl, ird] = t1 - t0
+
+    if plot_on:
+        graphics.estimator_quality(accuracies, chronos, classifiers_keys)
+
+    return accuracies, chronos, classifiers_keys
+
+
 def adabl_blh_estimation(
     dataFile: str,
     modelFile: str,
     scalerFile: str,
-    outputFile: bool=None,
-    storeInNetcdf: bool=False
+    outputFile: bool = None,
+    storeInNetcdf: bool = False,
 ):
     """Perform BLH estimation with ADABL on all profiles of the day and 
     write it into a copy of the netcdf file
@@ -358,9 +367,12 @@ def adabl_blh_estimation(
     # 1. Extract the data
     # ---------------------
     loc, dateofday, lat, lon = utils.where_and_when(dataFile)
-    t_values, z_values, rcs_1, rcs_2, blh_mnf = utils.extract_data(
+    t_values, z_values, dat = utils.extract_data(
         dataFile, to_extract=["rcs_1", "rcs_2", "pbl"]
     )
+    rcs_1 = dat["rcs_1"]
+    rcs_2 = dat["rcs_2"]
+    blh_mnf = dat["pbl"]
     sec_intheday = np.mod(t_values, 24 * 3600)
 
     Nt, Nz = rcs_1.shape
@@ -439,9 +451,9 @@ def adabl_qualitymetrics(
     dataFile: str,
     modelFile: str,
     scalerFile: str,
-    refFile: str="indus",
-    outputFile: str='None',
-    addResultsToNetcdf: bool=False
+    refFile: str = "indus",
+    outputFile: str = "None",
+    addResultsToNetcdf: bool = False,
 ):
     """Copy of blh_estimation including calculus and storage of scores
     
@@ -468,9 +480,12 @@ def adabl_qualitymetrics(
     # 1. Extract the data
     # ---------------------
     loc, dateofday, lat, lon = utils.where_and_when(dataFile)
-    t_values, z_values, rcs_1, rcs_2, blh_mnf = utils.extract_data(
+    t_values, z_values, dat = utils.extract_data(
         dataFile, to_extract=["rcs_1", "rcs_2", "pbl"]
     )
+    rcs_1 = dat["rcs_1"]
+    rcs_2 = dat["rcs_2"]
+    blh_mnf = dat["pbl"]
     sec_intheday = np.mod(t_values, 24 * 3600)
 
     Nt, Nz = rcs_1.shape
@@ -554,74 +569,3 @@ def adabl_qualitymetrics(
     n_invalid = np.sum(np.isnan(blh)) + np.sum(np.isinf(blh))
 
     return errl2_blh, errl1_blh, errl0_blh, corr_blh, chrono, n_invalid
-
-
-########################
-#      TEST BENCH      #
-########################
-# Launch with
-# >> python graphics.py
-#
-# For interactive mode
-# >> python -i graphics.py
-#
-if __name__ == "__main__":
-    
-    # Test of prepare_supervised_dataset
-    # ------------------------
-    print("\n --------------- Test of prepare_supervised_dataset")
-    lidarDir="../data_samples/lidar/"
-    dataFiles = [lidarDir+"DAILY_MPL_5025_20180802.nc",lidarDir+"DAILY_MPL_5029_20180224.nc"]
-    refDir="../data_samples/handmade_BLH/"
-    refFiles=[refDir+"blhref_Trappes_20180802.csv",refDir+"blhref_Brest_20180224.csv"]
-    
-    df=prepare_supervised_dataset(dataFiles,refFiles,saveInCSV=True)
-    print("df=",df)
-    
-    # Test of train_adabl
-    # ------------------------
-    print("\n --------------- Test of train_adabl")
-    
-    model,scaler=train_adabl(df)
-    print(
-        "model=",model,'\n',
-        "scaler=",scaler
-    )
-    
-    # Test of traintest_adabl
-    # ------------------------
-    print("\n --------------- Test of traintest_adabl")
-    
-    accuracies,chronos,classifiers_keys=traintest_adabl(df,plot_on=True)
-    print(
-        "accuracies=",accuracies,'\n',
-        "classifiers_keys=",classifiers_keys
-    )
-    
-    # Test of adabl_blh_estimation
-    # ------------------------
-    print("\n --------------- Test of adabl_blh_estimation")
-    dataFile = "../data_samples/lidar/DAILY_MPL_5025_20180802.nc"
-    modelFile='../pre-trained-adabl/adabl_classifier_tzRCS12_M200_D5.pkl'
-    scalerFile='../pre-trained-adabl/adabl_scaler_tzRCS12_M200_D5.pkl'
-    
-    blh_kabl=adabl_blh_estimation(dataFile,modelFile,scalerFile,storeInNetcdf=False)
-    print("blh_kabl.shape",blh_kabl.shape)
-    
-    
-    # Test of adabl_qualitymetrics
-    # ------------------------
-    print("\n --------------- Test of adabl_qualitymetrics")
-    dataFile = "../data_samples/lidar/DAILY_MPL_5025_20180802.nc"
-    modelFile='../pre-trained-adabl/adabl_classifier_tzRCS12_M200_D5.pkl'
-    scalerFile='../pre-trained-adabl/adabl_scaler_tzRCS12_M200_D5.pkl'
-    
-    errl2_blh, errl1_blh, errl0_blh, corr_blh, chrono, n_invalid = adabl_qualitymetrics(dataFile,modelFile,scalerFile,)
-    print(
-        "Err L2:",errl2_blh,
-        "Err L1:",errl1_blh,
-        "Err L0:",errl0_blh,
-        "Corr. :",corr_blh,
-        "Chrono:",chrono,
-        "#Inv:",n_invalid
-    )

@@ -1,0 +1,2 @@
+This file is needed to keep the tree of directories as required when cloning the repository.
+However, it is then listed in the `.gitignore`file so that running the code does not add unfollowed changes in the git status.

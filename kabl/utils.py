@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-'''
+"""
 MODULE OF SECONDARY FUNCTIONS FOR THE KABL PROGRAM.
 
 Features:
@@ -52,14 +52,15 @@ same conditions as regards security.
 
 The fact that you are presently reading this means that you have had
 knowledge of the CeCILL-C license and that you accept its terms.
-'''
+"""
 
 import netCDF4 as nc
 import datetime as dt
 import numpy as np
 
+
 def get_default_params():
-    '''Returns a dict with the default settings.
+    """Returns a dict with the default settings.
     
     Here is a description of all the settings you can change :
     
@@ -140,25 +141,26 @@ def get_default_params():
     | 'sunrise_shift'| float   | -3 to 3                               |
     | 'sunset_shift' | float   | -3 to 3                               |
     +----------------+---------+---------------------------------------+
-    '''
-    
-    params=dict()
-    params['algo']='kmeans'
-    params['n_clusters']=3
-    params['classif_score']='ch'
-    params['n_inits']=30
-    params['n_profiles']=1
-    params['max_k']=6
-    params['init']='advanced'
-    params['cov_type']='full'
-    params['predictors']={'day':['rcs_1'],'night':['rcs_1','rcs_2']}
-    params['max_height']=4500
-    params['sunrise_shift']=1
-    params['sunset_shift']=-1
+    """
+
+    params = dict()
+    params["algo"] = "kmeans"
+    params["n_clusters"] = 3
+    params["classif_score"] = "ch"
+    params["n_inits"] = 1
+    params["n_profiles"] = 1
+    params["max_k"] = 6
+    params["init"] = "given"
+    params["cov_type"] = "full"
+    params["predictors"] = {"day": ["rcs_1"], "night": ["rcs_1", "rcs_2"]}
+    params["max_height"] = 4500
+    params["sunrise_shift"] = 1
+    params["sunset_shift"] = -1
     return params
-    
+
+
 def where_and_when(datafile):
-    '''Returns the location of the lidar and the day when the measures
+    """Returns the location of the lidar and the day when the measures
     have been done from the name of the file. Files must be named using
     the convention:
             DAILY_MPL_SITEID_YYYYMMDD.nc
@@ -171,48 +173,70 @@ def where_and_when(datafile):
         - day (datetime): day of the measurements
         - lat (float): latitude of the place where the lidar was
         - lon (float): longitude of the place where the lidar was
-    '''
-    
+    """
+
     # Dictionnary to link site IDs to real location
-    sites_id2loc={'5025':'Trappes',
-        '5031':'Toulouse',
-        '5029':'Brest',
-        '5030':'Lille',
-        'Trappes':'Trappes' #For the test file only
-        }
-    
-    sites_id2lat={'5025':48.7743,
-        '5031':43.621,
-        '5029':48.45,
-        '5030':50.57,
-        'Trappes':48.7743 #For the test file only
-        }
-        
-    sites_id2lon={'5025':2.0098,
-        '5031':1.3788,
-        '5029':-4.3833,
-        '5030':3.0975,
-        'Trappes':2.0098 #For the test file only
-        }
-        
-    Filename=datafile.split("/")[-1]
-    daily,mpl,siteID,yyyymmdd=Filename.split("_")
-    
-    try:
-        location=sites_id2loc[siteID]
-        lat=sites_id2lat[siteID]
-        lon=sites_id2lon[siteID]
-    except KeyError:
-        location='Unknown'
-        lat=np.nan
-        lon=np.nan
-    
-    day=dt.datetime(int(yyyymmdd[0:4]),int(yyyymmdd[4:6]),int(yyyymmdd[6:8])) 
-    return location,day,lat,lon
-    
+    sites_id2loc = {
+        "5025": "Trappes",
+        "5031": "Toulouse",
+        "5029": "Brest",
+        "5030": "Lille",
+        "Trappes": "Trappes",  # For the test file only
+    }
+
+    sites_id2lat = {
+        "5025": 48.7743,
+        "5031": 43.621,
+        "5029": 48.45,
+        "5030": 50.57,
+        "Trappes": 48.7743,  # For the test file only
+    }
+
+    sites_id2lon = {
+        "5025": 2.0098,
+        "5031": 1.3788,
+        "5029": -4.3833,
+        "5030": 3.0975,
+        "Trappes": 2.0098,  # For the test file only
+    }
+
+    Filename = datafile.split("/")[-1]
+    daily, mpl, siteID, yyyymmdd = Filename.split("_")
+
+    location = sites_id2loc[siteID]
+    lat = sites_id2lat[siteID]
+    lon = sites_id2lon[siteID]
+    day = dt.datetime(int(yyyymmdd[0:4]), int(yyyymmdd[4:6]), int(yyyymmdd[6:8]))
+    return location, day, lat, lon
+
+
+def get_lat_lon(location):
+    """Return latitude and longitude of the given location"""
+
+    sites_id2lat = {
+        "5025": 48.7743,
+        "5031": 43.621,
+        "5029": 48.45,
+        "5030": 50.57,
+        "Trappes": 48.7743,
+        "Brest": 48.45,
+    }
+
+    sites_id2lon = {
+        "5025": 2.0098,
+        "5031": 1.3788,
+        "5029": -4.3833,
+        "5030": 3.0975,
+        "Trappes": 2.0098,
+        "Brest": -4.3833,
+    }
+
+    return sites_id2lat[location], sites_id2lon[location]
+
+
 
 def create_file_from_source(src_file, trg_file):
-    '''Copy a netCDF file into another, using only netCDF4 package.
+    """Copy a netCDF file into another, using only netCDF4 package.
     It is used to create an output file with the same information as the
     input file but without spoiling it.
     
@@ -222,33 +246,34 @@ def create_file_from_source(src_file, trg_file):
         - src_file (str): path to the input file
         - trg_file (str): path to the output file
     
-    [OUT] None'''
-    
+    [OUT] None"""
+
     src = nc.Dataset(src_file)
-    trg = nc.Dataset(trg_file, mode='w')
+    trg = nc.Dataset(trg_file, mode="w")
 
     # Create the dimensions of the file
     for name, dim in src.dimensions.items():
         trg.createDimension(name, len(dim) if not dim.isunlimited() else None)
 
     # Copy the global attributes
-    trg.setncatts({a:src.getncattr(a) for a in src.ncattrs()})
+    trg.setncatts({a: src.getncattr(a) for a in src.ncattrs()})
 
     # Create the variables in the file
     for name, var in src.variables.items():
         trg.createVariable(name, var.dtype, var.dimensions)
 
         # Copy the variable attributes
-        trg.variables[name].setncatts({a:var.getncattr(a) for a in var.ncattrs()})
+        trg.variables[name].setncatts({a: var.getncattr(a) for a in var.ncattrs()})
 
         # Copy the variables values (as 'f4' eventually)
         trg.variables[name][:] = src.variables[name][:]
 
     # Save the file
     trg.close()
-    
-def extract_rs(rs_file,t_start,t_end,method='BEST_BLH'):
-    '''Extract estimation from the radiosounding within a given time period.
+
+
+def extract_rs(rs_file, t_start, t_end, method="BEST_BLH"):
+    """Extract estimation from the radiosounding within a given time period.
     
     [IN]
         - rs_file (str): path to the radiosounding data (netCDF)
@@ -259,17 +284,18 @@ def extract_rs(rs_file,t_start,t_end,method='BEST_BLH'):
     [OUT]
         - t_rs (list of timestamp): vector of timestamps
         - blh_rs (list of float): vector of BLH estimation from RS
-    '''
-    
-    rsdata=nc.Dataset(rs_file)
-    t_rs=rsdata.variables['time']
-    blh_rs=rsdata.variables[method]
-    rsdex=np.where(np.logical_and(t_rs>t_start,t_rs<t_end))[0]
-    
-    return t_rs[rsdex],blh_rs[rsdex]
-    
-def extract_data(nc_file,to_extract=['rcs_1','rcs_2'],max_height=4500,params=None):
-    '''Extract useful variables from the netcdf file into Numpy arrays
+    """
+
+    rsdata = nc.Dataset(rs_file)
+    t_rs = rsdata.variables["time"]
+    blh_rs = rsdata.variables[method]
+    rsdex = np.where(np.logical_and(t_rs > t_start, t_rs < t_end))[0]
+
+    return t_rs[rsdex], blh_rs[rsdex]
+
+
+def extract_data(nc_file, to_extract=["rcs_1", "rcs_2"], max_height=4500, params=None):
+    """Extract useful variables from the netcdf file into Numpy arrays
     with one line per time and one column per height.
     
     [IN]
@@ -281,45 +307,54 @@ def extract_data(nc_file,to_extract=['rcs_1','rcs_2'],max_height=4500,params=Non
     [OUT]
         - t (np.array[Nt]): vector of timestamps
         - z (np.array[Nz]): vector of altitudes
-        - *args (np.array[Nt,Nz]): measured atmospheric variable at all times and altitude
-    '''
-    
+        - result (dict of np.array[Nt,Nz]): measured atmospheric variable at all times and altitude
+    """
+
     if params is not None:
-        max_height=params['max_height']
+        max_height = params["max_height"]
         required_var = []
-        for pr in params['predictors'].values():
+        for pr in params["predictors"].values():
             required_var.extend(pr)
     else:
         required_var = []
-    
+
     if not all([rv in to_extract for rv in required_var]):
-        raise ValueError("Some variables required for computation are NOT in the list of extraction.")
-        
-    
+        raise ValueError(
+            "Some variables required for computation are NOT in the list of extraction."
+            +"\nto_extract="+str(to_extract)
+            +"\nrequired_var="+str(required_var)
+        )
+
     ncf = nc.Dataset(nc_file)
-    z = np.array(ncf.variables['range'])
-    zmax=np.where(z<=max_height)[0][-1]
-    
-    t = np.ma.array(ncf.variables['time'][:])
+    z = np.array(ncf.variables["range"])
+    zmax = np.where(z <= max_height)[0][-1]
+
+    t = np.ma.array(ncf.variables["time"][:])
     t = t * 24 * 3600
-    if t.count()==t.size:
-        mask=np.full(t.shape,True)
+    if t.count() == t.size:
+        mask = np.full(t.shape, True)
     else:
-        mask=~t.mask
+        mask = ~t.mask
     
-    result = [t[mask], z[0:zmax] ]
+    result ={}
     for var in to_extract:
-        val=ncf.variables[var]
-        if val.ndim==2:
-            result.append(np.array(val[mask,0:zmax]))
-        if val.ndim==1:
-            result.append(np.array(val[mask]))
+        val = ncf.variables[var]
+        if val.ndim == 2:
+            result[var] = np.array(val[mask, 0:zmax])
+        if val.ndim == 1:
+            result[var] = np.array(val[mask])
     
-    return result
-    
-    
-def extract_testprofile(nc_file,to_extract=['rcs_1','rcs_2'],max_height=4500,profile_id=2,return_coords=False):
-    '''Extract preselected profiles of atmospheric variables from the
+    return t[mask], z[0:zmax], result
+
+
+def extract_testprofile(
+    nc_file,
+    to_extract=["rcs_1", "rcs_2"],
+    max_height=4500,
+    profile_id=2,
+    return_coords=False,
+):
+    """Extract preselected profiles of atmospheric variables from the
     netcdf file into Numpy arrays.
     
     [IN]
@@ -337,36 +372,47 @@ def extract_testprofile(nc_file,to_extract=['rcs_1','rcs_2'],max_height=4500,pro
         - z (np.array[Nz]): vector of altitudes
         - *args (np.array[Nz]): measured atmospheric variable at all altitudes
         - coords (dict): coordinate of the profile (time, latitude, longitude). ONLY RETURNED WHEN return_coords=True.
-    '''
-    
+    """
+
     ncf = nc.Dataset(nc_file)
-    z = np.array(ncf.variables['range'])
-    zmax=np.where(z<=max_height)[0][-1]
-    
-    t_index=[3,112,198,255]
-    if profile_id in [0,1,2,3]:
-        t=t_index[profile_id]
+    z = np.array(ncf.variables["range"])
+    zmax = np.where(z <= max_height)[0][-1]
+
+    t_index = [3, 112, 198, 255]
+    if profile_id in [0, 1, 2, 3]:
+        t = t_index[profile_id]
     else:
         raise ValueError("Unknown profile ID. Must be among [0,1,2,3]")
     result = [z[0:zmax]]
     for var in to_extract:
-        val=ncf.variables[var]
-        if val.ndim==2:
-            result.append(np.array(val[t,0:zmax]))
-        if val.ndim==1:
+        val = ncf.variables[var]
+        if val.ndim == 2:
+            result.append(np.array(val[t, 0:zmax]))
+        if val.ndim == 1:
             result.append(np.array(val[t]))
-    
+
     if return_coords:
-        loc,dateofday,lat,lon=where_and_when(nc_file)
-        hourofday=dt.datetime.utcfromtimestamp(ncf.variables['time'][t]*24*3600)
-        coords={'time':dt.datetime(dateofday.year,dateofday.month,dateofday.day,hourofday.hour,hourofday.minute,hourofday.second),'lat':lat,'lon':lon}
+        loc, dateofday, lat, lon = where_and_when(nc_file)
+        hourofday = dt.datetime.utcfromtimestamp(ncf.variables["time"][t] * 24 * 3600)
+        coords = {
+            "time": dt.datetime(
+                dateofday.year,
+                dateofday.month,
+                dateofday.day,
+                hourofday.hour,
+                hourofday.minute,
+                hourofday.second,
+            ),
+            "lat": lat,
+            "lon": lon,
+        }
         result.append(coords)
-    
+
     return result
 
 
-def add_blh_to_netcdf(inputFile,outputFile,blh,origin='kabl',quiet=False):
-    '''Add the BLH estimated with KABL into a copy of the original netcdf file.
+def add_blh_to_netcdf(inputFile, outputFile, blh, origin="kabl", quiet=False):
+    """Add the BLH estimated with KABL into a copy of the original netcdf file.
     
     [IN]
         - src_file (str): path to the input file
@@ -374,20 +420,37 @@ def add_blh_to_netcdf(inputFile,outputFile,blh,origin='kabl',quiet=False):
         - blh (np.array[Nt]): time series of BLH as estimated by the KABL algorithm.
         - quiet (bool): if True, all prints are disabled.
     
-    [OUT] None'''
-    
-    create_file_from_source(inputFile,outputFile)
-    ncf=nc.Dataset(outputFile,'r+')
-    BLH_NEW = ncf.createVariable('blh_'+origin.lower(),np.float32, ('time',))
+    [OUT] None"""
+
+    create_file_from_source(inputFile, outputFile)
+    ncf = nc.Dataset(outputFile, "r+")
+    BLH_NEW = ncf.createVariable("blh_" + origin.lower(), np.float32, ("time",))
     BLH_NEW[:] = blh[:]
-    BLH_NEW.units = "BLH from "+origin.upper()+". Meters above ground level (m agl)"
+    BLH_NEW.units = "BLH from " + origin.upper() + ". Meters above ground level (m agl)"
     ncf.close()
     if not quiet:
-        print("New variable 'blh_"+origin.lower()+"' has been added in the netcdf file ",outputFile)
+        print(
+            "New variable 'blh_"
+            + origin.lower()
+            + "' has been added in the netcdf file ",
+            outputFile,
+        )
 
 
-def save_qualitymetrics(dropfilename,t_values,blhs,blhs_names,scores,scores_names,masks,masks_names,n_clusters,chrono,params):
-    '''Save results of KABL quality metrics on one day into a netcdf file.
+def save_qualitymetrics(
+    dropfilename,
+    t_values,
+    blhs,
+    blhs_names,
+    scores,
+    scores_names,
+    masks,
+    masks_names,
+    n_clusters,
+    chrono,
+    params,
+):
+    """Save results of KABL quality metrics on one day into a netcdf file.
     
     This netcdf file contains the time evolution of BLHs (from KABL and 
     other sources to be compared with), of classification scores and of
@@ -409,107 +472,197 @@ def save_qualitymetrics(dropfilename,t_values,blhs,blhs_names,scores,scores_name
     [OUT]
         - (str): message saying everything is OK
         + netcdf file created at the given location
-    '''
+    """
     import time
-    
-    resultnc = nc.Dataset(dropfilename,'w')
-    
+
+    resultnc = nc.Dataset(dropfilename, "w")
+
     # General information
-    resultnc.description="Boundary layer heights calculated by different methods and quality score for some of them."
-    resultnc.source = 'Meteo-France CNRM/GMEI/LISA + DSO/DOA/IED'
-    resultnc.history = 'Created '+time.ctime(time.time())
-    resultnc.contactperson = 'Thomas Rieutord (thomas.rieutord@meteo.fr) ; Sylvain Aubert (sylvain.aubert@meteo.fr)'
+    resultnc.description = "Boundary layer heights calculated by different methods and quality score for some of them."
+    resultnc.source = "Meteo-France CNRM/GMEI/LISA + DSO/DOA/IED"
+    resultnc.history = "Created " + time.ctime(time.time())
+    resultnc.contactperson = "Thomas Rieutord (thomas.rieutord@meteo.fr) ; Sylvain Aubert (sylvain.aubert@meteo.fr)"
     resultnc.settings = str(params)
     resultnc.computation_time = chrono
-    
-    
+
     # Coordinate declaration
-    resultnc.createDimension('time',len(t_values))
-    
+    resultnc.createDimension("time", len(t_values))
+
     # Fill in time vector
-    Time = resultnc.createVariable('time',np.float64, ('time',))
+    Time = resultnc.createVariable("time", np.float64, ("time",))
     Time[:] = t_values
     Time.units = "Seconds since 1970/01/01 00:00 UTC (s)"
-    
+
     # Fill in BLHs vectors
     for ib in range(len(blhs)):
-        BLH = resultnc.createVariable(blhs_names[ib],np.float64, ('time',))
+        BLH = resultnc.createVariable(blhs_names[ib], np.float64, ("time",))
         BLH[:] = blhs[ib][:]
         BLH.units = "Meters above ground level (m agl)"
-    
+
     # Fill in scores vectors
     for ik in range(len(scores)):
-        SCORE = resultnc.createVariable(scores_names[ik],np.float64, ('time',))
+        SCORE = resultnc.createVariable(scores_names[ik], np.float64, ("time",))
         SCORE[:] = scores[ik][:]
-        SCORE.units = scores_names[ik]+" (unitless)"
-    
+        SCORE.units = scores_names[ik] + " (unitless)"
+
     # Fill in masks vectors
     for ik in range(len(masks)):
-        MASK = resultnc.createVariable(masks_names[ik],'i1', ('time',))
+        MASK = resultnc.createVariable(masks_names[ik], "i1", ("time",))
         MASK[:] = masks[ik][:]
-        MASK.units = masks_names[ik]+" (boolean)"
-    
+        MASK.units = masks_names[ik] + " (boolean)"
+
     # Fill in number of clusters vectors
-    K = resultnc.createVariable('N_CLUSTERS',np.int, ('time',))
-    n_clusters=np.array(n_clusters)
-    n_clusters[np.isnan(n_clusters)]=0
+    K = resultnc.createVariable("N_CLUSTERS", np.int, ("time",))
+    n_clusters = np.array(n_clusters)
+    n_clusters[np.isnan(n_clusters)] = 0
     K[:] = n_clusters[:]
-    
+
     # Closing the netcdf file
     resultnc.close()
-    
-    return "Results successfully written in the file "+dropfilename
+
+    return "Results successfully written in the file " + dropfilename
 
 
-########################
-#      TEST BENCH      #
-########################
-# Launch with
-# >> python utils.py
-#
-# For interactive mode
-# >> python -i utils.py
-#
-if __name__ == '__main__':
+def grid_to_scatter(x,y,z=None):
+    '''Convert grid point data into scattered points data.
     
-    # Test of where_and_when
-    #------------------------
-    print("\n --------------- Test of get_default_params")
-    params=get_default_params()
-    print("params=",params)
+    Grid point data : (x,y,z) with z[i,j]=f(x[i],y[j])
+    Scatter point data : (X,Y) with Y[i]=f(X[i,0],X[i,1])
     
-    # Test of where_and_when
-    #------------------------
-    print("\n --------------- Test of where_and_when")
-    testFile='../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-    location,day,lat,lon=where_and_when(testFile)
-    print("Location=",location, "(should be Trappes)")
-    print("Day=",day, "(should be 2nd of August, 2018)")
-    print("Latitude=",lat, "(should be 48.7742)")
-    print("Longitude=",lon, "(should be 2.0103)")
+    Inverse function -> scatter_to_grid
     
-    # Test of create_file_from_source
-    #---------------------------------
-    print("\n --------------- Test of create_file_from_source")
-    testFile='../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-    outputFile=testFile[:-3]+".out.nc"
-    create_file_from_source(testFile,outputFile)
-    print("File "+testFile+" copied into "+outputFile)
+    [IN]
+        - x (np.array[nx]): coordinates on X-axis
+        - y (np.array[ny]): coordinates on Y-axis
+        - z (np.array[nx,ny]): data for each point (x,y)
     
+    [OUT]
+        - X (np.array[nx*ny,2]): coordinate matrix
+        - Y (np.array[nx*ny]): data vector'''
+    nx=np.size(x)
+    ny=np.size(y)
     
-    # Test of extract_data
-    #--------------------------
-    print("\n --------------- Test of extract_data")
-    testFile='../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-    t_values,z_values,rcs_1,rcs_2=extract_data(testFile)
-    print("t_values.shape",t_values.shape,"z_values.shape",z_values.shape,"rcs_0.shape",rcs_0.shape,"rcs_2.shape",rcs_2.shape)
+    X=np.full((nx*ny,2),np.nan)
+    X[:,0]=np.repeat(x,ny)
+    X[:,1]=np.tile(y,nx)
+    if np.isnan(X).any():
+        print(" WARNING: ",np.isnan(X).sum()," NaN in X (grid_to_scatter)")
     
+    if z is None:
+        result = X
+    else:
+        if np.size(z)!=nx*ny:
+            raise Exception("Problem with inputs dimensions (grid_to_scatter)")
+        Y=z.ravel()
+        result = X,Y
     
-    # Test of extract_testprofile
-    #------------------------------
-    print("\n --------------- Test of extract_test_profile")
-    testFile='../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-    z_values,rcs_0,rcs_1,rcs_2,coords=extract_testprofile(testFile,profile_id=2,return_coords=True)
-    print("z_values.shape",z_values.shape,"rcs_0.shape",rcs_0.shape,"rcs_2.shape",rcs_2.shape)
-    print("coords",coords)
+    return result
+
+def scatter_to_grid(X,Y=None):
+    '''Convert scattered points data into grid point data.
     
+    Grid point data : (x,y,z) with z[i,j]=f(x[i],y[j])
+    Scatter point data : (X,Y) with Y[i]=f(X[i,0],X[i,1])
+    
+    Inverse function -> grid_to_scatter
+    
+    [IN]
+        - X (np.array[nx*ny,2]): coordinate matrix
+        - Y (np.array[nx*ny]): data vector
+    
+    [OUT]
+        - x (np.array[nx]): coordinates on X-axis
+        - y (np.array[ny]): coordinates on Y-axis
+        - z (np.array[nx,ny]): data for each point (x,y)
+    '''
+    
+    N,d=np.shape(X)
+    
+    if d!=2:
+        raise ValueError("More than 2 columns. Not ready so far (scatter_to_grid)")
+    
+    if np.sum(np.diff(X[:,0])==0)>np.sum(np.diff(X[:,1])==0):
+        xcoord=0
+    else:
+        xcoord=1
+    
+    ny = (np.diff(X[:,xcoord])==0).tolist().index(False)+1
+    
+    if np.mod(N/ny,1)!=0:
+        raise ValueError("Number of points doesn't match with dimensions")
+    
+    nx = int(N/ny)
+    
+    x = X[0:N:ny,xcoord]
+    y = X[0:ny,1-xcoord]
+    if Y is None:
+        result = x,y
+    else:
+        if np.size(Y)!=N:
+            raise Exception("Inconsistent inputs dimensions (scatter_to_grid)")
+        z = np.reshape(Y,(nx,ny))
+        result = x,y,z
+    
+    return result
+
+
+def colocate_instruments(
+    time_lidar, time_rs, values_lidar, values_rs, tol=0, verbose=False
+):
+    """Return the values that are colocated according to a given tolerance
+    
+    [IN]
+        - time_lidar (np.array[Nl]): vector of timestamps (seconds since 1970-01-01 00:00 UTC) for lidar values
+        - time_rs (np.array[Nr]): vector of timestamps (seconds since 1970-01-01 00:00 UTC) for RS values (Nr << Nl)
+        - values_lidar (list of np.array[Nl]): list of variables to be colocated with RS
+        - values_rs (np.array[Nr]): vector of values measured by RS to be colocated with lidar
+        - tol (float): width of the interval (seconds) to consider values to be colocated
+        - verbose (bool): if False, kills the prints
+        
+    [OUT]
+        - 
+    """
+
+    time_coloc = []
+    values_lidar_coloc = [[] for k in range(len(values_lidar))]
+    values_rs_coloc = []
+
+    for it in range(len(time_rs)):
+        t = time_rs[it]
+        ind_t_coloc = np.where(
+            np.logical_and(
+                time_lidar >= t,
+                time_lidar <= t + tol
+            )
+        )[0]
+        
+        if verbose:
+            print(
+                len(ind_t_coloc),
+                "shots colocated with RS at ",
+                dt.datetime.utcfromtimestamp(t),
+            )
+        if len(ind_t_coloc)>0 and not np.isnan(values_rs[it]):
+            
+            time_coloc.append(time_lidar[ind_t_coloc[0]])
+            
+            if verbose:
+                print(
+                    "First one at ",
+                    dt.datetime.utcfromtimestamp(time_coloc[-1]),
+                    "RS at ",
+                    dt.datetime.utcfromtimestamp(t),
+                )
+
+            values_rs_coloc.append(values_rs[it])
+            
+            for k in range(len(values_lidar)):
+                if values_lidar[k].dtype == bool:
+                    mean10_lidar = any(values_lidar[k][ind_t_coloc])
+                else:
+                    mean10_lidar = np.nanmean(values_lidar[k][ind_t_coloc])
+                values_lidar_coloc[k].append(mean10_lidar)
+
+    values_lidar_coloc = [np.array(var) for var in values_lidar_coloc]
+
+    return np.array(time_coloc), np.array(values_rs_coloc), values_lidar_coloc
