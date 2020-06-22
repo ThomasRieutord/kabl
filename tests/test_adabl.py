@@ -52,6 +52,16 @@ def test_traintest_adabl():
     assert accuracies.shape==(5,3) and chronos.shape==(5,3) and set(classifiers_keys)==set(['RandomForestClassifier', 'KNeighborsClassifier', 'DecisionTreeClassifier', 'AdaBoostClassifier', 'LabelSpreading'])
 
 
+# block_cv_adabl
+#-----------------
+def test_block_cv_adabl():
+    datasetfile = paths.file_labelleddataset()
+    
+    accuracies, chronos, classifiers_keys = block_cv_adabl(datasetfile, n_folds=3, plot_on=False)
+    
+    assert accuracies.shape==(5,3) and chronos.shape==(5,3) and set(classifiers_keys)==set(['RandomForestClassifier', 'KNeighborsClassifier', 'DecisionTreeClassifier', 'AdaBoostClassifier', 'LabelSpreading'])
+
+
 # adabl_blh_estimation
 # ---------------------
 

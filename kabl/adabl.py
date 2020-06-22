@@ -340,6 +340,100 @@ def traintest_adabl(
 
     return accuracies, chronos, classifiers_keys
 
+def block_cv_adabl(
+    dataset,
+    predictors: list = ["sec0", "alti", "rcs0"],
+    n_folds: int = 10,
+    plot_on: bool = False,
+):
+
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.neighbors import KNeighborsClassifier
+    from sklearn.tree import DecisionTreeClassifier
+    from sklearn.ensemble import AdaBoostClassifier
+    from sklearn.semi_supervised import LabelSpreading
+    from sklearn.model_selection import GroupKFold
+
+    # Load dataset
+    # ------------
+
+    if isinstance(dataset, pd.DataFrame):
+        df = dataset
+    elif os.path.isfile(dataset):
+        df = pd.read_csv(dataset)
+    else:
+        raise ValueError(
+            "Argument 'dataset' must be either a path or a pandas.DataFrame"
+        )
+
+    X = df.loc[:, predictors].values
+    y = df.loc[:, "isBL"].values
+
+    # Normalisation
+    # -------------
+
+    scaler = StandardScaler()
+    X = scaler.fit_transform(X)
+
+    # Instantiate classifiers
+    # -----------------------
+    n_weaks = 200
+    tree_depth = 5
+
+    rfc = RandomForestClassifier(n_estimators=n_weaks, max_depth=tree_depth)
+    knn = KNeighborsClassifier(n_neighbors=6)
+    dtc = DecisionTreeClassifier(max_depth=tree_depth)
+    abc = AdaBoostClassifier(
+        base_estimator=DecisionTreeClassifier(max_depth=tree_depth),
+        n_estimators=n_weaks,
+    )
+    lsc = LabelSpreading(kernel="knn")
+
+    # Summarize performances
+    # ----------------------
+
+    classifiers = [rfc, knn, dtc, abc, lsc]
+    classifiers_keys = [str(clf).split("(")[0] for clf in classifiers]
+    chronos = np.zeros((len(classifiers), n_folds))
+    accuracies = np.zeros((len(classifiers), n_folds))
+
+    for icl in range(len(classifiers)):
+        clf = classifiers[icl]
+        print("\nClassifier", icl, "/", len(classifiers), classifiers_keys[icl])
+        
+        gkf = GroupKFold(n_splits=n_folds)
+        group=np.zeros_like(y)
+        for itx in df.groupby(np.floor(df.sec0/(24*3600/n_folds))).indices.items():
+            grval,grdex = itx
+            group[grdex]=int(grval)
+        
+        # setup toolbar
+        toolbar_width = int(n_folds)
+        sys.stdout.write(
+            "   \_Group"+str(n_folds)+"Fold: [%s]" % ("." * toolbar_width)
+        )
+        sys.stdout.flush()
+        sys.stdout.write("\b" * (toolbar_width + 1))  # return to start of line, after '['
+        for ird, (idx_train, idx_test) in enumerate(gkf.split(X=X, y=y, groups=group)):
+            sys.stdout.write("#")
+            sys.stdout.flush()
+            X_train = X[idx_train,:]
+            X_test = X[idx_test,:]
+            y_train = y[idx_train]
+            y_test = y[idx_test]
+
+            t0 = time.time()  #::::::
+            clf.fit(X_train, y_train)
+            accuracies[icl, ird] = clf.score(X_test, y_test)
+            t1 = time.time()  #::::::
+            chronos[icl, ird] = t1 - t0
+    
+    sys.stdout.write("]\n")
+    
+    if plot_on:
+        graphics.estimator_quality(accuracies, chronos, classifiers_keys)
+    
+    return accuracies, chronos, classifiers_keys
 
 def adabl_blh_estimation(
     dataFile: str,
