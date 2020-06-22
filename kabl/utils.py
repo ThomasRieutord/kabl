@@ -411,6 +411,35 @@ def extract_testprofile(
     return result
 
 
+def blh_from_labels(labels, z_values):
+    """Derive the boundary layer height from clusters labels.
+    Boundary layer is by definition the cluster in contact with the ground.
+    Its limit is set where the this cluster ends for the first time.
+    
+    [IN]
+        - labels (np.array[N]): vector of cluster number attribution
+        - z_values (np.array[N]): vector of altitude
+    
+    [OUT]
+        - blh (float): height of first cluster transition
+    """
+
+    if labels is None or len(np.unique(labels)) == 1:
+        # Case where no proper BLH can be found.
+        blh = np.nan
+    else:
+        # Order labels and altitude by altitude
+        ordered_by_z = np.argsort(z_values, kind="stable")
+        z_values = z_values[ordered_by_z]
+        labels = labels[ordered_by_z]
+
+        # Find the first change in labels
+        dif = np.diff(labels)
+        ind = np.where(np.abs(dif) >= 0.9)[0]
+        blh = (z_values[ind[0]] + z_values[ind[0] + 1]) / 2
+
+    return blh
+
 def add_blh_to_netcdf(inputFile, outputFile, blh, origin="kabl", quiet=False):
     """Add the BLH estimated with KABL into a copy of the original netcdf file.
     

@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Unitary tests of the functions in ../kabl/utils.py
-Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
 
 Must be executed inside the `tests/` directory
 """
@@ -114,6 +113,21 @@ def test_extract_testprofile():
     )
     
     assert z_values.shape==(146,) and rcs_1.shape==(146,)
+
+# blh_from_labels
+#-----------------
+
+def test_blh_from_labels():
+    
+    labl = np.zeros(100)
+    labl[30:50] = 1
+    labl[50:] = 2
+    z = np.linspace(0,2970,100)
+    
+    zi = blh_from_labels(labl,z)
+    
+    assert zi==885.0
+
 
 
 # grid/scatter conversion

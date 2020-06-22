@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Unitary tests of the functions in ../kabl/adabl.py
+Unitary tests of the functions in ../kabl/paths.py
 
 Must be executed inside the `tests/` directory
 """
@@ -31,4 +31,4 @@ def test_paths_todirs():
         if key[:4]=='dir_':
             dirOK.append(os.path.isdir(val()))
     
-    assert all(dirOK) and len(dirOK)>2
+    assert all(dirOK) and len(dirOK)>1

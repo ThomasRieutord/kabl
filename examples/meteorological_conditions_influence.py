@@ -253,4 +253,42 @@ graphics.scatterplot_blhs(
     titre="BLH estimated by KABL and RS ("+str(blh_kabl.size)+" values)"
 )
 
+notnan = ~np.isnan(blh_adabl)
+graphics.scatterplot_blhs(
+    t_coloc[notnan],
+    blh_x=blh_adabl[notnan],
+    blh_y=blh_rs[notnan],
+    blh_xlabel="BLH estimated by ADABL",
+    blh_ylabel="BLH estimated by RS",
+    titre="BLH estimated by ADABL and RS ("+str(blh_adabl[notnan].size)+" values)"
+)
+
+# Correlation vs height
+# ---------------------
+
+Nz = 15
+z_tops = np.linspace(150,4000,Nz)
+zcorr_kabl = np.zeros(Nz)
+zcorr_indus = np.zeros(Nz)
+zcorr_adabl = np.zeros(Nz)
+zcount = np.zeros(Nz)
+
+for iz in range(Nz):
+    zmask = blh_rs < z_tops[iz]
+    zcount[iz] = zmask.sum()/zmask.size
+    zcorr_kabl[iz] = np.corrcoef(blh_rs[zmask],blh_kabl[zmask])[0,1]
+    zcorr_indus[iz] = np.corrcoef(blh_rs[zmask],blh_indus[zmask])[0,1]
+    
+    zmask = np.logical_and(blh_rs < z_tops[iz],~np.isnan(blh_adabl))
+    zcorr_adabl[iz] = np.corrcoef(blh_rs[zmask],blh_adabl[zmask])[0,1]
+
+plt.figure()
+plt.plot(z_tops,zcorr_kabl,label="KABL")
+plt.plot(z_tops,zcorr_indus,label="INDUS")
+plt.plot(z_tops,zcorr_adabl,label="ADABL")
+plt.plot(z_tops,zcount,':',label="Nb of points")
+plt.grid()
+plt.legend()
+plt.show(block=False)
+
 input("\n Press Enter to exit (close down all figures)\n")

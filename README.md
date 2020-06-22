@@ -63,19 +63,11 @@ In the directory where is the `setup.py`, run:
 pip install -e .
 ```
 
-Alternative installation
--------------------------
-If the previous methods do not work, try to reproduce the environment from the `kabltest-explicit-env.txt` file:
-```bash
-conda create --name kabltest --file kabltest-explicit-env.txt
-```
-This method is usually not cross platform, but it gives an alternative way of installation.
-
 Use KABL
 ---------
 Once the installation is ready (prompt should display `(kabltest)` if you are using conda), you can execute the ready-to-use script in the `examples` directory:
 ```bash
-python try_it.py
+python try_kabl_and_adabl.py
 ```
 More information about the package and its parameters are given below.
 
@@ -85,12 +77,13 @@ The package
 Description
 ---------------
 
-KABL package is located in the `kabl` directory. It contains 4 Python source codes :
+KABL package is located in the `kabl` directory. It contains 6 Python source codes :
+  * `adabl.py`: module containing the core functions of ADABL.
   * `core.py`: module containing the core functions of KABL.
-  * `utils.py`: module containing basic functions used in KABL and in graphics.
-  * `graphics.py`: module containing all advanced graphics.
   * `ephemerid.py`: module to calculate sunrise and sunset from position. From [Michel Landers](https://michelanders.blogspot.com/2010/12/calulating-sunrise-and-sunset-in-python.html)
-
+  * `paths.py`: module containing all paths to files and directory, OS-indepedently.
+  * `graphics.py`: module containing all graphics.
+  * `utils.py`: module containing basic functions used in KABL and in graphics.
 They depend on other famous Python packages.
 Here is the dependency graph:
 
@@ -108,7 +101,7 @@ To perform the BLH estimation over one day (as shown in example), the previous f
 
 Tunable parameters
 ------------------
-The script `try_it.py` contains a dictionary named `params`.
+The script `try_kabl_and_adabl.py` contains a dictionary named `params`.
 This dictionary controls all the tunable settings for KABL.
 The significations of these settings, as well as their possible values, are explained in the paper associated to this directory (Rieutord et al., 2020).
 You also access them in the docstring of `utils.get_default_params()`:

@@ -34,7 +34,7 @@ z_values, rcs_1, rcs_2, coords = utils.extract_testprofile(
 )
 X, Z = core.prepare_data(coords, z_values, {"rcs_1":rcs_1, "rcs_2":rcs_2})
 labels = core.apply_algo(X, 3)
-blh = core.blh_from_labels(labels, Z)
+blh = utils.blh_from_labels(labels, Z)
 
 blhs_over_profile(z_values, rcs_1, blh, labels=labels)
 

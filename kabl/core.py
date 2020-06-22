@@ -7,7 +7,7 @@ Features:
   - prepare_data
   - apply_algo_k_auto
   - apply_algo
-  - blh_from_labels
+  - utils.blh_from_labels
   - blh_estimation
   - apply_algo_k_3scores
   - kabl_qualitymetrics
@@ -76,7 +76,6 @@ from sklearn.metrics import (
 from kabl.ephemerid import Sun
 from kabl import paths
 from kabl import utils
-from kabl import graphics
 
 
 def prepare_data(coords, z_values, rcss, params=None):
@@ -352,36 +351,6 @@ def apply_algo(X, n_clusters, init_codification=None, params=None):
     return labels
 
 
-def blh_from_labels(labels, z_values):
-    """Derive the boundary layer height from clusters labels.
-    Boundary layer is by definition the cluster in contact with the ground.
-    Its limit is set where the this cluster ends for the first time.
-    
-    [IN]
-        - labels (np.array[N]): vector of cluster number attribution
-        - z_values (np.array[N]): vector of altitude
-    
-    [OUT]
-        - blh (float): height of first cluster transition
-    """
-
-    if labels is None or len(np.unique(labels)) == 1:
-        # Case where no proper BLH can be found.
-        blh = np.nan
-    else:
-        # Order labels and altitude by altitude
-        ordered_by_z = np.argsort(z_values, kind="stable")
-        z_values = z_values[ordered_by_z]
-        labels = labels[ordered_by_z]
-
-        # Find the first change in labels
-        dif = np.diff(labels)
-        ind = np.where(np.abs(dif) >= 0.9)[0]
-        blh = (z_values[ind[0]] + z_values[ind[0] + 1]) / 2
-
-    return blh
-
-
 def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
     """Perform BLH estimation on all profiles of the day and write it into
     a copy of the netcdf file.
@@ -470,7 +439,7 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
 
         # 4. Derive and store the BLH
         # ---------------------
-        blh.append(blh_from_labels(labels, Z))
+        blh.append(utils.blh_from_labels(labels, Z))
 
     if outputFile is None:
         outputFile = paths.file_defaultoutput()
@@ -699,7 +668,7 @@ def kabl_qualitymetrics(
 
         # 4. Derive and store the BLH
         # ---------------------
-        blh.append(blh_from_labels(labels, Z))
+        blh.append(utils.blh_from_labels(labels, Z))
         K_values.append(n_clusters)
         s_scores.append(s_score)
         db_scores.append(db_score)
@@ -754,8 +723,6 @@ def kabl_qualitymetrics(
         else:
             blh_rs = None
 
-        # graphics.blhs_over_data(t_values,z_values,rcs_1,BLHS,[s[4:] for s in BLH_NAMES],
-        # blh_rs=blh_rs,storeImages=True,showFigure=False)
         print(msg)
 
     errl2_blh = np.sqrt(np.nanmean((blh - blh_ref) ** 2))
@@ -866,7 +833,7 @@ def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False,
 
         # 4. Derive and store the BLH
         # ---------------------
-        blh.append(blh_from_labels(labels, Z))
+        blh.append(utils.blh_from_labels(labels, Z))
         zoneID.append(labels)
 
     if outputFile is None:

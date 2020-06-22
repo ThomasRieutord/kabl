@@ -430,7 +430,7 @@ def adabl_blh_estimation(
 
         # 4. Derive and store the BLH
         # ---------------------
-        blh.append(core.blh_from_labels(y_new, z_values))
+        blh.append(utils.blh_from_labels(y_new, z_values))
 
     # end toolbar
     t1 = time.time()  #::::::::::::::::::::::
@@ -543,7 +543,7 @@ def adabl_qualitymetrics(
 
         # 4. Derive and store the BLH
         # ---------------------
-        blh.append(core.blh_from_labels(y_new, z_values))
+        blh.append(utils.blh_from_labels(y_new, z_values))
 
     # end toolbar
     t1 = time.time()  #::::::::::::::::::::::
