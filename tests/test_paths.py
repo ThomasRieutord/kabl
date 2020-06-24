@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Unitary tests of the functions in ../kabl/paths.py
-
 Must be executed inside the `tests/` directory
 """
 from kabl.paths import *

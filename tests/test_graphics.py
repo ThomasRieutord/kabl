@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""Unitary tests of the functions in ../kabl/graphics.py
-Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-
+"""
+Unitary tests of the functions in ../kabl/graphics.py
 Must be executed inside the `tests/` directory
 """
 

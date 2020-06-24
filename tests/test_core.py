@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Unitary tests of the functions in ../kabl/utils.py
-
+Unitary tests of the functions in ../kabl/core.py
 Must be executed inside the `tests/` directory
 """
 
@@ -164,7 +163,7 @@ def test_kabl_qualitymetrics():
         scores[4]>1200,     # ch
         scores[5]<0.4,      # db
         scores[6]>0.7,      # sil
-        scores[7]<2,      # chrono
+        scores[7]<3,      # chrono
         scores[8]==0,      # n_invalid
     ])
     

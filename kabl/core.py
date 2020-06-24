@@ -3,56 +3,12 @@
 """
 MODULE OF CORE FUNCTIONS FOR THE KABL PROGRAM.
 
-Features:
-  - prepare_data
-  - apply_algo_k_auto
-  - apply_algo
-  - utils.blh_from_labels
-  - blh_estimation
-  - apply_algo_k_3scores
-  - kabl_qualitymetrics
-
-Test of the functions: `python core.py`
-Requires the test file at '../data-samples/lidar/DAILY_MPL_5025_20180802.nc'
-
  +-----------------------------------------+
  |  Date of creation: 6 Aug. 2019          |
  +-----------------------------------------+
  |  Meteo-France                           |
  |  DSO/DOA/IED and CNRM/GMEI/LISA         |
  +-----------------------------------------+
- 
-Copyright Meteo-France, 2019, [CeCILL-C](https://cecill.info/licences.en.html) license (open source)
-
-This module is a computer program that is part of the KABL (K-means for 
-Atmospheric Boundary Layer) program. This program performs boundary layer
-height estimation for concentration profiles using K-means algorithm.
-
-This software is governed by the CeCILL-C license under French law and
-abiding by the rules of distribution of free software.  You can  use,
-modify and/ or redistribute the software under the terms of the CeCILL-C 
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info".
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability.
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the
-same conditions as regards security.
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL-C license and that you accept its terms.
 """
 
 # Usual Python packages
@@ -81,39 +37,55 @@ from kabl import utils
 def prepare_data(coords, z_values, rcss, params=None):
     """Put the data in form to fulfil algorithm requirements.
     
-    Four operations are carried out in this function:
-     1. Distinguish night and day for predictors
-     2. Concatenate the profiles
-     3. Take the logarithm of range-corrected signal
-     4. Apply also a standard normalisation (remove mean and divide by
+    Five operations are carried out in this function:
+      0. Check and reshape inputs
+      1. Distinguish night and day for predictors
+      2. Concatenate the profiles
+      3. Take the logarithm of range-corrected signal
+      4. Apply also a standard normalisation (remove mean and divide by
     standard deviation).
     
-    [IN]
-        - coords (dict): dict with time and space coordinate
-          'time' (datetime): time of the profile
-          'lat' (float): latitude of the measurement site
-          'lon' (float): longitude of the measurement site
-        - z_values (np.array[nZ]): vector of altitude values
-        - rcs_0 (np.array[nT,nZ]): matrix of co-polarized backscatter values
-        - rcs_1 (np.array[nT,nZ]): matrix of co-polarized backscatter values
-        - rcs_2 (np.array[nT,nZ]): matrix of cross-polarized backscatter values
-        - params (dict): dict with all settings. Depends on 'n_profiles', 'predictors', 'sunrise_shift', 'sunset_shift'.
+    
+    Parameters
+    ----------
+    coords : dict
+        Time and space coordinate. The dict must have 3 keys:
+        'time' (datetime): time of the profile
+        'lat' (float): latitude of the measurement site
+        'lon' (float): longitude of the measurement site
+    
+    z_values : array-like of shape (nZ,)
+        Vector of altitude values
+    
+    rcss : dict
+        Input data, in the form of a dict of named matrices.
+        Example: rcss={"rcs_0":rcs_0, "rcs_1":rcs_1} where rcs_0 and
+        rcs_1 are ndarray of shape (nT,nZ)
+    
+    params : dict
+        Dict with all settings. This function depends on 'n_profiles',
+        'predictors', 'sunrise_shift', 'sunset_shift'.
       
-    [OUT]
-        - X (np.array[N,p]): design matrix to put in input of the algorithm. Each line is an observation, each column is a predictor.
-        - Z (np.array[N]): vector of altitudes for each observation.
+    Returns
+    -------
+    X : ndarray of shape (N,p)
+        Design matrix to put in input of the algorithm.
+        Each line is an observation, each column is a predictor.
+    
+    Z : ndarray of shape (N,)
+        Vector of altitudes for each observation.
     """
 
     if params is None:
         params = utils.get_default_params()
-    
+
     # 0. Check and reshape inputs
     # ---------------------------
     needed_data = np.unique(np.concatenate(list(params["predictors"].values())))
-    
-    if set(rcss.keys())!=set(needed_data):
+
+    if set(rcss.keys()) != set(needed_data):
         raise Exception("Wrong input data provided.")
-    
+
     if "rcs_0" in needed_data:
         rcs_0 = rcss["rcs_0"]
         try:
@@ -135,8 +107,7 @@ def prepare_data(coords, z_values, rcss, params=None):
         except ValueError:
             Nz = rcs_2.size
             Nt = 1
-    
-        
+
     # 1. Distinguish night and day for predictors
     # --------------------------------------------
     t = coords["time"]
@@ -163,7 +134,7 @@ def prepare_data(coords, z_values, rcss, params=None):
 
     # 2. Concatenate the profiles
     # ----------------------------
-    if Nt>1:
+    if Nt > 1:
         Z = np.tile(z_values, Nt)
     else:
         Z = z_values
@@ -200,19 +171,38 @@ def prepare_data(coords, z_values, rcss, params=None):
 
 def apply_algo_k_auto(X, init_codification=None, quiet=True, params=None):
     """Apply the machine learning algorithm for various number of
-    clusters and choose the best according a certain score
+    clusters and choose the best according the specified score.
     
-    [IN]
-        - X (np.array[N,p]): design matrix to put in input of the algorithm. Each line is an observation, each column is a predictor.
-        - init_codification (dict): dict to link initialisation strategy with actual algorithm inputs. See kabl.core.apply_algo
-        - quiet (boolean): if True, cut down all prints
-        - params (dict): dict with all settings. Depends on 'max_k', 'n_clusters'
+    Parameters
+    ----------
+    X : ndarray of shape (N,p)
+        Design matrix to put in input of the algorithm. Each line is an
+        observation, each column is a predictor.
+    
+    init_codification : dict, default=None
+        Link initialisation strategy with actual algorithm inputs. 
+        See kabl.core.apply_algo
+    
+    quiet : bool, default=True
+        If True, cut down all prints
         
-    [OUT]
-        - labels (np.array[N]): vector of cluster number attribution
-            BEWARE: the cluster identification number are random. Only borders matter.
-        - n_clusters_opt (int): optimal number of clusters to be found in the data
-        - classif_scores (float): value of classification score (chosen in params['n_clusters']) for the returned classification.
+    params : dict, default=None
+        Dict with all settings. This function depends on 'max_k', 'n_clusters'
+    
+    
+    Returns
+    -------
+    labels : ndarray of shape (N,)
+        Vector of cluster number attribution
+        BEWARE: the cluster identification number are random. Only
+        borders matter.
+    
+    n_clusters_opt : int
+        Optimal number of clusters to be found in the data
+    
+    classif_scores : float
+        Value of classification score (chosen in
+        params['n_clusters']) for the returned classification.
     """
 
     if params is None:
@@ -285,22 +275,36 @@ def apply_algo_k_auto(X, init_codification=None, quiet=True, params=None):
 def apply_algo(X, n_clusters, init_codification=None, params=None):
     """Apply the machine learning algorithm on the prepared data.
     
-    [IN]
-        - X (np.array[N,p]): design matrix to put in input of the algorithm. Each line is an observation, each column is a predictor.
-        - n_clusters (int): number of clusters to be found in the data
-        - init_codification (dict): dict to link initialisation strategy with actual algorithm inputs.
-            Keys are the three strategy are available:
-                'random': pick randomly an individual as starting  point (both Kmeans and GMM)
-                'advanced': more sophisticated way to initialize
-                'given': start at explicitly passed point coordinates.
-                + special key 'token', where are given the explicit point coordinates to use when the strategy is 'given'
-            Values are dictionnaries with, as key, the algorithm name and, as value, the corresponding input in Scikit-learn.
-            For 'token', the value is a list of np.arrays (explicit point coordinates)
-        - params (dict): dict of parameters. Depends on 'algo', 'n_inits', 'init', 'cov_type'
+    Parameters
+    ----------
+    X : ndarray of shape (N,p)
+        Design matrix to put in input of the algorithm. Each line is an
+        observation, each column is a predictor.
+    
+    n_clusters : int
+        Number of clusters to be found in the data
+    
+    init_codification : dict, default=None
+        Link initialisation strategy with actual algorithm inputs.
+        Keys are the three strategy are available:
+            'random': pick randomly an individual as starting  point (both Kmeans and GMM)
+            'advanced': more sophisticated way to initialize
+            'given': start at explicitly passed point coordinates.
+            + special key 'token', where are given the explicit point coordinates to use when the strategy is 'given'
+        Values are dictionnaries with, as key, the algorithm name and, as value, the corresponding input in Scikit-learn.
+        For 'token', the value is a list of np.arrays (explicit point coordinates)
+    
+    params : dict, default=None
+        Dict with all settings. This function depends  on 'algo',
+        'n_inits', 'init', 'cov_type'
         
-    [OUT]
-        - labels (np.array[N]): vector of cluster number attribution
-            BEWARE: the cluster identification number are random. Only borders matter."""
+    Returns
+    -------
+    labels : ndarray of shape (N,)
+        Vector of cluster number attribution
+        BEWARE: the cluster identification number are random.
+        Only borders matter.
+    """
 
     if params is None:
         params = utils.get_default_params()
@@ -355,14 +359,35 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
     """Perform BLH estimation on all profiles of the day and write it into
     a copy of the netcdf file.
     
-    [IN]
-      - inputFile (str): path to the input file, as generated by raw2l1
-      - outputFile (str): path to the output file. Default adds ".out" before ".nc"
-      - storeInNetcdf (bool): if True, the field 'blh_ababl', containg BLH estimation, is stored in the outputFile
-      - params (dict): dict of parameters. Depends on 'n_clusters'
     
-    [OUT]
-      - blh (np.array[Nt]): time series of BLH as estimated by the KABL algorithm.
+    Parameters
+    ----------
+    inputFile : str
+        Path to the input file, as generated by raw2l1
+    
+    outputFile : str, default=None
+        Path to the output file. Default adds ".out" before ".nc"
+    
+    storeInNetcdf : bool, default=True
+        If True, the field 'blh_kabl', containg BLH estimation, is
+        stored in the outputFile
+    
+    params : dict, default=None
+        Dict with all settings. This function depends  on 'n_clusters'
+    
+    
+    Returns
+    -------
+    blh : ndarray of shape (Nt,)
+        Time series of BLH as estimated by the KABL algorithm.
+    
+    
+    Example
+    -------
+    >>> from kabl import paths
+    >>> from kabl import core
+    >>> testFile = paths.file_defaultlidardata()
+    >>> blh = core.blh_estimation(testFile)
     """
 
     t0 = time.time()  #::::::::::::::::::::::
@@ -375,16 +400,15 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
     loc, dateofday, lat, lon = utils.where_and_when(inputFile)
     needed_data = np.unique(np.concatenate(list(params["predictors"].values())))
     t_values, z_values, rcss = utils.extract_data(
-            inputFile, to_extract=needed_data, params=params
-        )
-    
+        inputFile, to_extract=needed_data, params=params
+    )
+
     if "rcs_0" in needed_data:
         rcs_0 = rcss["rcs_0"]
     if "rcs_1" in needed_data:
         rcs_1 = rcss["rcs_1"]
     if "rcs_2" in needed_data:
         rcs_2 = rcss["rcs_2"]
-    
 
     blh = []
 
@@ -414,7 +438,7 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
             "lon": lon,
         }
         t_back = max(t - params["n_profiles"] + 1, 0)
-        
+
         rcss = {}
         if "rcs_0" in needed_data:
             rcss["rcs_0"] = rcs_0[t_back : t + 1, :]
@@ -422,13 +446,8 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
             rcss["rcs_1"] = rcs_1[t_back : t + 1, :]
         if "rcs_2" in needed_data:
             rcss["rcs_2"] = rcs_2[t_back : t + 1, :]
-        
-        X, Z = prepare_data(
-            coords,
-            z_values,
-            rcss = rcss,
-            params = params
-        )
+
+        X, Z = prepare_data(coords, z_values, rcss=rcss, params=params)
 
         # 3. Apply the machine learning algorithm
         # ---------------------
@@ -457,19 +476,34 @@ def blh_estimation(inputFile, outputFile=None, storeInNetcdf=True, params=None):
     return np.array(blh)
 
 
-def apply_algo_k_3scores(X, params=None, quiet=True):
-    """Adapation of apply_algo_k_auto in benchmark context.
+def apply_algo_k_3scores(X, quiet=True, params=None):
+    """Adapation of kabl.core.apply_algo_k_auto in benchmark context.
     
-    [IN]
-        - X (np.array[N,p]): design matrix to put in input of the algorithm. Each line is an observation, each column is a predictor.
-        - params (dict): dict with all settings. Depends on 'max_k', 'n_clusters'
-        - quiet (bool): if True, all prints are skipped
+    Parameters
+    ----------
+    X : ndarray of shape (N,p)
+        Design matrix to put in input of the algorithm. Each line is an
+        observation, each column is a predictor.
+    
+    quiet : bool, default=True
+        If True, cut down all prints
         
-    [OUT]
-        - labels (np.array[N]): vector of cluster number attribution
-            BEWARE: the cluster identification number are random. Only borders matter.
-        - n_clusters_opt (int): optimal number of clusters to be found in the data
-        - classif_scores (float): value of classification score (chosen in params['n_clusters']) for the returned classification.
+    params : dict, default=None
+        Dict with all settings. This function depends on 'max_k', 'n_clusters'
+        
+    Returns
+    -------
+    labels : ndarray of shape (N,)
+        Vector of cluster number attribution
+        BEWARE: the cluster identification number are random. Only
+        borders matter.
+    
+    n_clusters_opt : int
+        Optimal number of clusters to be found in the data
+    
+    classif_scores : float
+        Value of classification score (chosen in
+        params['n_clusters']) for the returned classification.
     """
 
     if params is None:
@@ -556,25 +590,67 @@ def kabl_qualitymetrics(
     storeResults=True,
     params=None,
 ):
-    """Copy of blh_estimation including calculus and storage of scores
+    """Estimate quality metrics of KABL for one day of measurement.
     
-    [IN]
-      - inputFile (str): path to the input file, as generated by raw2l1
-      - outputFile (str): path to the output file. Default adds ".out" before ".nc"
-      - reference (str): path to the reference file, if any.
-      - rsFile (str): path to the radiosounding estimations, if any (give the possibility to store it in the same netcdf)
-      - storeResults (bool): if True, the field 'blh_ababl', containg BLH estimation, is stored in the outputFile
-      - params (dict): dict of parameters. Depends on 'n_clusters'
+    This function perform the BLH estimation as in
+    kabl.core.blh_estimation but its output are the quality metrics, not
+    the BLH estimation. As the estimation of quality metrics is greedier
+    this function is noticeably longer to execute.
     
-    [OUT]
-      - errl2_blh (float): root mean squared gap between BLH from KABL and the reference
-      - errl1_blh (float): mean absolute gap between BLH from KABL and the reference
-      - errl0_blh (float): maximum absolute gap between BLH from KABL and the reference
-      - ch_score (float): mean over all day Calinski-Harabasz score (the higher, the better)
-      - db_scores (float): mean over all day Davies-Bouldin score (the lower, the better)
-      - s_scores (float): mean over all day silhouette score (the higher, the better)
-      - chrono (float): computation time for the full day (seconds)
-      - n_invalid (int): number of BLH estimation at NaN or Inf
+    Parameters
+    ----------
+    inputFile : str
+        Path to the input file, as generated by raw2l1
+    
+    outputFile : str, default=None
+        Path to the output file
+    
+    reference : str, default=None
+        Path to handmade BLH estimation, if any, which will serve
+        as reference.
+    
+    rsFile : str
+        Path to the radiosounding estimations, if any. Give the
+        possibility to store it in the same netcdf
+    
+    storeResults : bool, default=True
+        If True, quality metrics are stored in the `outputFile`
+    
+    params : dict, default=None
+        Dict with all settings. This function depends  on 'n_clusters'
+    
+    
+    Returns
+    -------
+    errl2_blh : float
+        Root mean squared gap between BLH from KABL and the reference
+        .. math:: \sqrt{1/N \sum_i^N (Z(i)-Zref(i))^2}
+    
+    errl1_blh : float
+        Mean absolute gap between BLH from KABL and the reference
+        .. math:: 1/N \sum_i^N \vert Z(i)-Zref(i) \vert
+      
+    errl0_blh : float
+        Maximum absolute gap between BLH from KABL and the reference
+        .. math:: \max_i \vert Z(i)-Zref(i) \vert
+    
+    ch_score : float
+        Average Calinski-Harabasz score (the higher, the better) over
+        the full day
+        
+    db_scores : float
+        Average Davies-Bouldin score (the lower, the better) over
+        the full day
+    
+    s_scores : float
+        Average silhouette score (the higher, the better) over
+        the full day
+    
+    chrono : float
+        Computation time for the full day (seconds)
+    
+    n_invalid : int
+        Number of BLH estimation at NaN or Inf
     """
 
     t0 = time.time()  #::::::::::::::::::::::
@@ -586,9 +662,7 @@ def kabl_qualitymetrics(
     # ---------------------
     loc, dateofday, lat, lon = utils.where_and_when(inputFile)
     t_values, z_values, dat = utils.extract_data(
-        inputFile,
-        to_extract=["rcs_1", "rcs_2", "pbl", "rr", "vv", "b1"],
-        params=params
+        inputFile, to_extract=["rcs_1", "rcs_2", "pbl", "rr", "vv", "b1"], params=params
     )
     rcs_1 = dat["rcs_1"]
     rcs_2 = dat["rcs_2"]
@@ -596,7 +670,7 @@ def kabl_qualitymetrics(
     rr = dat["rr"]
     vv = dat["vv"]
     cbh = dat["b1"]
-    
+
     blh = []
     K_values = []
     s_scores = []
@@ -635,10 +709,7 @@ def kabl_qualitymetrics(
         X, Z = prepare_data(
             coords,
             z_values,
-            rcss = {
-                "rcs_1":rcs_1[t_back : t + 1, :],
-                "rcs_2":rcs_2[t_back : t + 1, :]
-                },
+            rcss={"rcs_1": rcs_1[t_back : t + 1, :], "rcs_2": rcs_2[t_back : t + 1, :]},
             params=params,
         )
 
@@ -682,8 +753,7 @@ def kabl_qualitymetrics(
     if outputFile is None:
         fname = os.path.split(inputFile)[-1]
         outputFile = os.path.join(
-            paths.resultrootdir,
-            "DAILY_BENCHMARK_" + fname[10:-3] + ".nc"
+            paths.resultrootdir, "DAILY_BENCHMARK_" + fname[10:-3] + ".nc"
         )
 
     mask_cloud = cbh[:] <= 3000
@@ -743,19 +813,37 @@ def kabl_qualitymetrics(
         n_invalid,
     )
 
-def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False, params=None):
+
+def blh_estimation_returnlabels(
+    inputFile, outputFile=None, storeInNetcdf=False, params=None
+):
     """Perform BLH estimation on all profiles of the day and return the labels
     of the classification.
     
-    [IN]
-      - inputFile (str): path to the input file, as generated by raw2l1
-      - outputFile (str): path to the output file. Default adds ".out" before ".nc"
-      - storeInNetcdf (bool): if True, the field 'blh_ababl', containg BLH estimation, is stored in the outputFile
-      - params (dict): dict of parameters. Depends on 'n_clusters'
     
-    [OUT]
-      - blh (np.array[Nt]): time series of BLH as estimated by the KABL algorithm.
-      - zoneID (np.array[Nt,Nz]): time series of BLH as estimated by the KABL algorithm.
+    Parameters
+    ----------
+    inputFile : str
+        Path to the input file, as generated by raw2l1
+    
+    outputFile : str, default=None
+        Path to the output file. Default adds ".out" before ".nc"
+    
+    storeInNetcdf : bool, default=True
+        If True, the field 'blh_kabl', containg BLH estimation, is
+        stored in the outputFile
+    
+    params : dict, default=None
+        Dict with all settings. This function depends  on 'n_clusters'
+    
+    
+    Returns
+    -------
+    blh : ndarray of shape (Nt,)
+        Time series of BLH as estimated by the KABL algorithm
+    
+    zoneID : ndarray of shape (Nt,Nz)
+        Cluster labels of every profiles
     """
 
     t0 = time.time()  #::::::::::::::::::::::
@@ -768,16 +856,15 @@ def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False,
     loc, dateofday, lat, lon = utils.where_and_when(inputFile)
     needed_data = np.unique(np.concatenate(list(params["predictors"].values())))
     t_values, z_values, rcss = utils.extract_data(
-            inputFile, to_extract=needed_data, params=params
-        )
-    
+        inputFile, to_extract=needed_data, params=params
+    )
+
     if "rcs_0" in needed_data:
         rcs_0 = rcss["rcs_0"]
     if "rcs_1" in needed_data:
         rcs_1 = rcss["rcs_1"]
     if "rcs_2" in needed_data:
         rcs_2 = rcss["rcs_2"]
-    
 
     blh = []
     zoneID = []
@@ -808,7 +895,7 @@ def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False,
             "lon": lon,
         }
         t_back = max(t - params["n_profiles"] + 1, 0)
-        
+
         rcss = {}
         if "rcs_0" in needed_data:
             rcss["rcs_0"] = rcs_0[t_back : t + 1, :]
@@ -816,13 +903,8 @@ def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False,
             rcss["rcs_1"] = rcs_1[t_back : t + 1, :]
         if "rcs_2" in needed_data:
             rcss["rcs_2"] = rcs_2[t_back : t + 1, :]
-        
-        X, Z = prepare_data(
-            coords,
-            z_values,
-            rcss = rcss,
-            params = params
-        )
+
+        X, Z = prepare_data(coords, z_values, rcss=rcss, params=params)
 
         # 3. Apply the machine learning algorithm
         # ---------------------
@@ -850,4 +932,3 @@ def blh_estimation_returnlabels(inputFile, outputFile=None, storeInNetcdf=False,
         utils.add_blh_to_netcdf(inputFile, outputFile, blh)
 
     return np.array(blh), np.array(zoneID)
-

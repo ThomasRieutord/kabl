@@ -3,17 +3,6 @@
 """
 MODULE OF SECONDARY FUNCTIONS FOR THE KABL PROGRAM.
 
-Features:
-    - get_default_params
-    - where_and_when
-    - create_file_from_source
-    - extract_data
-    - extract_testprofile
-    - add_blh_to_netcdf
-
-Test of the functions: `python utils.py`
-Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
-
  +-----------------------------------------+
  |  Date of creation: 6 Aug. 2019          |
  +-----------------------------------------+
@@ -21,110 +10,94 @@ Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
  |  DSO/DOA/IED and CNRM/GMEI/LISA         |
  +-----------------------------------------+
  
-Copyright Meteo-France, 2019, [CeCILL-C](https://cecill.info/licences.en.html) license (open source)
-
-This module is a computer program that is part of the KABL (K-means for 
-Atmospheric Boundary Layer) program. This program performs boundary layer
-height estimation for concentration profiles using K-means algorithm.
-
-This software is governed by the CeCILL-C license under French law and
-abiding by the rules of distribution of free software.  You can  use,
-modify and/ or redistribute the software under the terms of the CeCILL-C 
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info".
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability.
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the
-same conditions as regards security.
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL-C license and that you accept its terms.
 """
 
 import netCDF4 as nc
 import datetime as dt
 import numpy as np
+import os
 
 
 def get_default_params():
     """Returns a dict with the default settings.
     
-    Here is a description of all the settings you can change :
     
-        * 'algo': set the machine learning algorithm that will be applied.
-            If it is 'gmm', the EM algorithm (Gaussian mixture) is used.
-            If it is 'kmeans', the K-means algorithm is used.
-            
-        * 'n_clusters': set the number of clusters to be formed.
-            If it is an integer, such integer is the number of clusters.
-            If not (as when it is 'auto'), the number of clusters is
-            automatically estimated with the score in params['classif_score'].
+    Parameters
+    ----------
+    None
+    
+    
+    Returns
+    -------
+    params : dict
+        Defaults settings
+    
+    
+    Notes
+    -----
+    Here is a description of all the settings you can change :
+
+    * 'algo': set the machine learning algorithm that will be applied.
+        If it is 'gmm', the EM algorithm (Gaussian mixture) is used.
+        If it is 'kmeans', the K-means algorithm is used.
         
-        * 'classif_score': set the classification score that will be
-            used to automatically estimate the number of clusters.
-            Three scores are available:
-                'silh' or 'silhouette' for silhouette coefficient
-                'db' or 'davies_bouldin' for Davies-Bouldin score
-                All else use Calinski-Harabasz score (the fastest)
-        
-        * 'n_inits': set how many times the algorithm is repeated with a
-            different initialisation.
-        
-        * 'n_profiles': set how many profiles are concatenated before the
-            application of the algorithm.
-            If n_profiles=1, only the current profile is used.
-            If n_profiles=3, the current profile and the two previous are
-            concatenated and put in input of the algorithm.
-            The higher n_profiles, the smoother is the time evolution of
-            BLH estimation.
-        
-        * 'max_k': highest number of clusters tested when automatically
-            chosen. The higher the longer is the code.
-        
-        * 'init': initialisation strategy for both algorithms. Three are
-            available:
-                'random': pick randomly an individual as starting  point (both Kmeans and GMM)
-                'advanced': more sophisticated way to initialize
-                'given': start at explicitly passed point coordinates.
-        
-        * 'cov_type': ONLY FOR GMM. Set the assumption made on covariance
-            matrices.
-                'full' each component has its own general covariance matrix
-                'tied' all components' covariance matrices are proportional
-                'diag' each component has its own diagonal covariance matrix
-                'spherical' each component has its own single variance
-        
-        * 'predictors': list of variables used in the classification.
-            They can be different at night and at day. For both, it can
-            be chosen among:
-                'rcs_1': parallel polarised range-corrected backscatter signal
-                'rcs_2': orthogonal polarised range-corrected backscatter signal
-            The change of predictors between day and night is made at the
-            hours of sunrise and sunset as given by the epheremid module
-            plus a shift set later in theses parameters.
-        
-        * 'max_height': height where the measurements are cut (m agl)
-        
-        * 'sunrise_shift': the limit from night to day is shifted from 
-            sunrise to have a more realistic transition of predictors.
-            It is given in algebraic hour after sunrise.
-        
-        * 'sunset_shift': the limit from day to night is shifted from 
-            sunset to have a more realistic transition of predictors.
-            It is given in algebraic hour after sunset.
+    * 'n_clusters': set the number of clusters to be formed.
+        If it is an integer, such integer is the number of clusters.
+        If not (as when it is 'auto'), the number of clusters is
+        automatically estimated with the score in params['classif_score'].
+    
+    * 'classif_score': set the classification score that will be
+        used to automatically estimate the number of clusters.
+        Three scores are available:
+            'silh' or 'silhouette' for silhouette coefficient
+            'db' or 'davies_bouldin' for Davies-Bouldin score
+            All else use Calinski-Harabasz score (the fastest)
+    
+    * 'n_inits': set how many times the algorithm is repeated with a
+        different initialisation.
+    
+    * 'n_profiles': set how many profiles are concatenated before the
+        application of the algorithm.
+        If n_profiles=1, only the current profile is used.
+        If n_profiles=3, the current profile and the two previous are
+        concatenated and put in input of the algorithm.
+        The higher n_profiles, the smoother is the time evolution of
+        BLH estimation.
+    
+    * 'max_k': highest number of clusters tested when automatically
+        chosen. The higher the longer is the code.
+    
+    * 'init': initialisation strategy for both algorithms. Three are
+        available:
+            'random': pick randomly an individual as starting  point (both Kmeans and GMM)
+            'advanced': more sophisticated way to initialize
+            'given': start at explicitly passed point coordinates.
+    
+    * 'cov_type': ONLY FOR GMM. Set the assumption made on covariance
+        matrices.
+            'full' each component has its own general covariance matrix
+            'tied' all components' covariance matrices are proportional
+            'diag' each component has its own diagonal covariance matrix
+            'spherical' each component has its own single variance
+    
+    * 'predictors': list of variables used in the classification.
+        They can be different at night and at day. For both, it can
+        be chosen among:
+            'rcs_1': parallel polarised range-corrected backscatter signal
+            'rcs_2': orthogonal polarised range-corrected backscatter signal
+        The change of predictors between day and night is made at the
+        hours of sunrise and sunset as given by the epheremid module
+        plus a shift set later in theses parameters.
+    
+    * 'max_height': height where the measurements are cut (m agl)
+    
+    * 'sunrise_shift': the limit from night to day is shifted from 
+        sunrise to have a more realistic transition of predictors.
+        It is given in algebraic hour after sunrise.
+    
+    * 'sunset_shift': the limit from day to night is shifted from 
+        sunset to have a more realistic transition of predictors.
+        It is given in algebraic hour after sunset.
 
     +----------------+---------+---------------------------------------+
     |    Key         |  Type   |        Possible values                |
@@ -165,14 +138,26 @@ def where_and_when(datafile):
     the convention:
             DAILY_MPL_SITEID_YYYYMMDD.nc
     
-    [IN]
-        - datafile (str): path to file
-        
-    [OUT]
-        - location (str): name of the place where the lidar was
-        - day (datetime): day of the measurements
-        - lat (float): latitude of the place where the lidar was
-        - lon (float): longitude of the place where the lidar was
+    
+    Parameters
+    ----------
+    datafile : str
+        Path to file. Must be of the form `DAILY_MPL_SITEID_YYYYMMDD.nc`
+    
+    
+    Returns
+    -------
+    location : str
+        Name of the place where the lidar was
+    
+    day : `datetime.datetime`
+        Day of the measurements
+    
+    lat : float
+        Latitude of the place where the lidar was
+    
+    lon : float
+        Latitude of the place where the lidar was
     """
 
     # Dictionnary to link site IDs to real location
@@ -200,18 +185,35 @@ def where_and_when(datafile):
         "Trappes": 2.0098,  # For the test file only
     }
 
-    Filename = datafile.split("/")[-1]
+    Filename = os.path.split(datafile)[-1]
     daily, mpl, siteID, yyyymmdd = Filename.split("_")
 
     location = sites_id2loc[siteID]
     lat = sites_id2lat[siteID]
     lon = sites_id2lon[siteID]
     day = dt.datetime(int(yyyymmdd[0:4]), int(yyyymmdd[4:6]), int(yyyymmdd[6:8]))
+
     return location, day, lat, lon
 
 
 def get_lat_lon(location):
-    """Return latitude and longitude of the given location"""
+    """Return latitude and longitude of the given location
+    
+    
+    Parameters
+    ----------
+    location : str
+        Name of the place where the lidar was
+    
+    
+    Returns
+    -------
+    lat : float
+        Latitude of the place where the lidar was
+    
+    lon : float
+        Latitude of the place where the lidar was
+    """
 
     sites_id2lat = {
         "5025": 48.7743,
@@ -234,19 +236,30 @@ def get_lat_lon(location):
     return sites_id2lat[location], sites_id2lon[location]
 
 
-
 def create_file_from_source(src_file, trg_file):
     """Copy a netCDF file into another, using only netCDF4 package.
     It is used to create an output file with the same information as the
     input file but without spoiling it.
     
+    
+    Parameters
+    ----------
+    src_file : str
+        Path to the input file
+    
+    trg_file : str
+        Path to the output file
+    
+    
+    Returns
+    -------
+    None
+    
+    
+    Notes
+    -----
     From Stack Overflow (2019): https://stackoverflow.com/questions/13936563/copy-netcdf-file-using-python
-    
-    [IN]
-        - src_file (str): path to the input file
-        - trg_file (str): path to the output file
-    
-    [OUT] None"""
+    """
 
     src = nc.Dataset(src_file)
     trg = nc.Dataset(trg_file, mode="w")
@@ -275,15 +288,31 @@ def create_file_from_source(src_file, trg_file):
 def extract_rs(rs_file, t_start, t_end, method="BEST_BLH"):
     """Extract estimation from the radiosounding within a given time period.
     
-    [IN]
-        - rs_file (str): path to the radiosounding data (netCDF)
-        - t_start (timestamp): beginning of the time period
-        - t_end (timestamp): ending of the time period
-        - method (str): code for the BLH calculation method (see inside rs_file)
     
-    [OUT]
-        - t_rs (list of timestamp): vector of timestamps
-        - blh_rs (list of float): vector of BLH estimation from RS
+    Parameters
+    ----------
+    rs_file : str
+        Path to the radiosounding data in netCDF format
+    
+    t_start : POSIX timestamp
+        Beginning of the time period in POSIX timestamp (number of
+        seconds since 1970/01/01 00:00 UTC)
+        
+    t_end : POSIX timestamp
+        Ending of the time period in POSIX timestamp (number of
+        seconds since 1970/01/01 00:00 UTC)
+    
+    method : str, default="BEST_BLH"
+        Namecode for the BLH calculation method. See inside rs_file.
+    
+    
+    Returns
+    -------
+    t_rs : array-like of POSIX timestamp
+        Vector of time -- number of seconds since 1970/01/01 00:00 UTC
+    
+    blh_rs : array-like
+        Vector of BLH estimation from RS
     """
 
     rsdata = nc.Dataset(rs_file)
@@ -298,16 +327,36 @@ def extract_data(nc_file, to_extract=["rcs_1", "rcs_2"], max_height=4500, params
     """Extract useful variables from the netcdf file into Numpy arrays
     with one line per time and one column per height.
     
-    [IN]
-        - nc_file (str): path to the netcdf file containing the data
-        - to_extract (list of str): list of variables to extract. They must be the same as in the netcdf variables.
-        - max_height (int): maximum altitude of measurement extracted.
-        - params (dict): dict with all settings. If provided, the value params['max_height'] overrides the value given in 'max_height'.
     
-    [OUT]
-        - t (np.array[Nt]): vector of timestamps
-        - z (np.array[Nz]): vector of altitudes
-        - result (dict of np.array[Nt,Nz]): measured atmospheric variable at all times and altitude
+    Parameters
+    ----------
+    nc_file : str
+        Path to the netcdf file containing the data
+    
+    to_extract : list of str, default=["rcs_1", "rcs_2"]
+        Variables to extract. They must be spelled exactlyt as in the
+        netcdf variables.
+    
+    max_height : int, default=4500
+        Maximum range of measurement extracted, in meters.
+    
+    params : dict, default=None
+        Dict with all settings. This function depends on 'max_height',
+        'predictors'. If `params` is provided, a consistency check is
+        made on the predictors and the value params['max_height']
+        overrides the value given in 'max_height'.
+    
+    
+    Returns
+    -------
+    t : ndarray of shape (Nt,)
+        Vector of time -- number of seconds since 1970/01/01 00:00 UTC
+    
+    z : ndarray of shape (Nz,)
+        Vector of altitude
+    
+    result : dict of ndarray of shape (Nt,Nz)
+        Measured atmospheric variables at all times and altitude
     """
 
     if params is not None:
@@ -321,8 +370,10 @@ def extract_data(nc_file, to_extract=["rcs_1", "rcs_2"], max_height=4500, params
     if not all([rv in to_extract for rv in required_var]):
         raise ValueError(
             "Some variables required for computation are NOT in the list of extraction."
-            +"\nto_extract="+str(to_extract)
-            +"\nrequired_var="+str(required_var)
+            + "\nto_extract="
+            + str(to_extract)
+            + "\nrequired_var="
+            + str(required_var)
         )
 
     ncf = nc.Dataset(nc_file)
@@ -335,15 +386,15 @@ def extract_data(nc_file, to_extract=["rcs_1", "rcs_2"], max_height=4500, params
         mask = np.full(t.shape, True)
     else:
         mask = ~t.mask
-    
-    result ={}
+
+    result = {}
     for var in to_extract:
         val = ncf.variables[var]
         if val.ndim == 2:
             result[var] = np.array(val[mask, 0:zmax])
         if val.ndim == 1:
             result[var] = np.array(val[mask])
-    
+
     return t[mask], z[0:zmax], result
 
 
@@ -357,21 +408,40 @@ def extract_testprofile(
     """Extract preselected profiles of atmospheric variables from the
     netcdf file into Numpy arrays.
     
-    [IN]
-        - nc_file (str): path to the netcdf file containing the data
-        - to_extract (list of str): list of variables to extract. They must be the same as in the netcdf variables.
-        - max_height (int): maximum altitude of measurement extracted.
-        - profile_id (int): identification of the test profile to be extracted:
-                0=profile of 0:17 (t=3): nocturnal boundary layer with aerosol plume aloft
-                1=profile of 9:22 (t=112): morning transition
-                2=profile of 16:32 (t=198): well-mixed boundary layer
-                3=profile of 21:17 (t=255): evening transition
-        - return_coords (bool): if True, the dict 'coords' is returned as last element of the tuple.
-                
-    [OUT]
-        - z (np.array[Nz]): vector of altitudes
-        - *args (np.array[Nz]): measured atmospheric variable at all altitudes
-        - coords (dict): coordinate of the profile (time, latitude, longitude). ONLY RETURNED WHEN return_coords=True.
+    
+    Parameters
+    ----------
+    nc_file : str
+        Path to the netcdf file containing the data
+    
+    to_extract : list of str, default=["rcs_1", "rcs_2"]
+        Variables to extract. They must be spelled exactlyt as in the
+        netcdf variables.
+    
+    max_height : int, default=4500
+        Maximum range of measurement extracted, in meters.
+    
+    profile_id : int in {0:3}, default=2
+        Identification of the test profile to be extracted:
+        0 -> profile of 0:17 (t=3): nocturnal boundary layer with aerosol plume aloft
+        1 -> profile of 9:22 (t=112): morning transition
+        2 -> profile of 16:32 (t=198): well-mixed boundary layer
+        3 -> profile of 21:17 (t=255): evening transition
+    
+    return_coords : bool
+        If True, the dict `coords` is returned as last element of the list
+    
+    
+    Returns
+    -------
+    z : ndarray of shape (Nz,)
+        Vector of altitude
+    
+    result : list
+        First element is the vector of altitudes, followed by all
+        resquested atmospheric variables. All are array-like of shape (Nz,)
+        If return_coords=True, the dict `coords` is added at the end of
+        the list
     """
 
     ncf = nc.Dataset(nc_file)
@@ -440,16 +510,34 @@ def blh_from_labels(labels, z_values):
 
     return blh
 
+
 def add_blh_to_netcdf(inputFile, outputFile, blh, origin="kabl", quiet=False):
-    """Add the BLH estimated with KABL into a copy of the original netcdf file.
+    """Add the BLH estimated time series into a copy of the original
+    netcdf file.
     
-    [IN]
-        - src_file (str): path to the input file
-        - trg_file (str): path to the output file
-        - blh (np.array[Nt]): time series of BLH as estimated by the KABL algorithm.
-        - quiet (bool): if True, all prints are disabled.
     
-    [OUT] None"""
+    Parameters
+    ----------
+    src_file : str
+        Path to the input file
+    
+    trg_file : str
+        Path to the output file
+    
+    blh : array-like of shape (Nt,)
+        Time series of BLH estimation
+    
+    origin : str
+        Identification of the BLH estimation algorithm
+    
+    quiet : bool, default=False
+        If True, cut down all prints
+    
+    
+    Returns
+    -------
+    None
+    """
 
     create_file_from_source(inputFile, outputFile)
     ncf = nc.Dataset(outputFile, "r+")
@@ -486,21 +574,49 @@ def save_qualitymetrics(
     the number of clusters. Other useful information, such as the compu-
     ting time and the full dict of KABL's parameters, are also stored.
     
-    [IN]
-        - dropfilename (str): path to the netcdf file in which results will be stored
-        - t_values (np.array([Nt])): array of time values
-        - blh_ref (np.array([Nt])): array of BLH estimated by constructor
-        - blh_new (np.array([Nt])): array of BLH estimation by Kmeans algorithm
-        - score (np.array([Nt])): array of score assessing the classification
-        - n_clusters (np.array([Nt])): array of number of clusters choosen by silhouette method
-        - mask_rain (np.array([Nt])): array of booleans. True if there is some rain.
-        - mask_cloud (np.array([Nt])): array of booleans. True if there is a cloud under 3000 m (agl).
-        - chrono (float): computing time for the full day (seconds)
-        - params (dict): dict with all KABL' settings.
     
-    [OUT]
-        - (str): message saying everything is OK
-        + netcdf file created at the given location
+    Parameters
+    ----------
+    dropfilename : str
+        Path to the netcdf file in which results will be stored
+    
+    t_values : array-like of shape (Nt,)
+        Vector of times -- number of seconds since 1970/01/01 00:00 UTC
+    
+    blhs : list of array-like of shape (Nt,)
+        Time series of BLH estimated with different methods
+    
+    blhs_names : list of str
+        Names of the different BLH estimations
+    
+    scores : list of array-like of shape (Nt,)
+        Time series of different quality scores
+    
+    scores_names : list of str
+        Names of the different quality scores
+    
+    masks : list of array-like of shape (Nt,)
+        List of masks on meteorological conditions along time
+    
+    masks_names : list of str
+        Names of the meteorological conditions in each mask
+    
+    n_clusters : array-like of shape (Nt,)
+        Time series of the number of clusters formed by KABL
+    
+    chrono : float
+        Computing time for the full day, in seconds
+    
+    params : dict
+        Dict with all KABL settings. 
+    
+    
+    Returns
+    -------
+    msg : str
+        Message saying everything is OK
+    
+    Netcdf file created at the given location
     """
     import time
 
@@ -552,104 +668,164 @@ def save_qualitymetrics(
     return "Results successfully written in the file " + dropfilename
 
 
-def grid_to_scatter(x,y,z=None):
-    '''Convert grid point data into scattered points data.
+def grid_to_scatter(x, y, z=None):
+    """Convert grid point data into scattered points data.
     
     Grid point data : (x,y,z) with z[i,j]=f(x[i],y[j])
     Scatter point data : (X,Y) with Y[i]=f(X[i,0],X[i,1])
     
+    
+    Parameters
+    ----------
+    x : ndarray of shape (nx,) 
+        Coordinates on X-axis
+        
+    y : ndarray of shape (ny,)
+        Coordinates on Y-axis
+    
+    z : ndarray of shape (nx,ny), default=None
+        Data for each point (x,y)
+    
+    
+    Returns
+    -------
+    X : ndarray of shape (nx*ny,2)
+        Matrix of coordinates
+        
+    Y : ndarray of shape (nx*ny,)
+        Data vector
+    
+    
+    Notes
+    -----
     Inverse function -> scatter_to_grid
-    
-    [IN]
-        - x (np.array[nx]): coordinates on X-axis
-        - y (np.array[ny]): coordinates on Y-axis
-        - z (np.array[nx,ny]): data for each point (x,y)
-    
-    [OUT]
-        - X (np.array[nx*ny,2]): coordinate matrix
-        - Y (np.array[nx*ny]): data vector'''
-    nx=np.size(x)
-    ny=np.size(y)
-    
-    X=np.full((nx*ny,2),np.nan)
-    X[:,0]=np.repeat(x,ny)
-    X[:,1]=np.tile(y,nx)
+    """
+    nx = np.size(x)
+    ny = np.size(y)
+
+    X = np.full((nx * ny, 2), np.nan)
+    X[:, 0] = np.repeat(x, ny)
+    X[:, 1] = np.tile(y, nx)
     if np.isnan(X).any():
-        print(" WARNING: ",np.isnan(X).sum()," NaN in X (grid_to_scatter)")
-    
+        print(" WARNING: ", np.isnan(X).sum(), " NaN in X (grid_to_scatter)")
+
     if z is None:
         result = X
     else:
-        if np.size(z)!=nx*ny:
+        if np.size(z) != nx * ny:
             raise Exception("Problem with inputs dimensions (grid_to_scatter)")
-        Y=z.ravel()
-        result = X,Y
-    
+        Y = z.ravel()
+        result = X, Y
+
     return result
 
-def scatter_to_grid(X,Y=None):
-    '''Convert scattered points data into grid point data.
+
+def scatter_to_grid(X, Y=None):
+    """Convert scattered points data into grid point data.
     
     Grid point data : (x,y,z) with z[i,j]=f(x[i],y[j])
     Scatter point data : (X,Y) with Y[i]=f(X[i,0],X[i,1])
     
+    
+    Parameters
+    ----------
+    X : ndarray of shape (nx*ny,2)
+        Matrix of coordinates
+        
+    Y : ndarray of shape (nx*ny,), default=None
+        Data vector
+    
+    
+    Returns
+    -------
+    x : ndarray of shape (nx,) 
+        Coordinates on X-axis
+        
+    y : ndarray of shape (ny,)
+        Coordinates on Y-axis
+    
+    z : ndarray of shape (nx,ny)
+        Data for each point (x,y)
+    
+    
+    Notes
+    -----
     Inverse function -> grid_to_scatter
-    
-    [IN]
-        - X (np.array[nx*ny,2]): coordinate matrix
-        - Y (np.array[nx*ny]): data vector
-    
-    [OUT]
-        - x (np.array[nx]): coordinates on X-axis
-        - y (np.array[ny]): coordinates on Y-axis
-        - z (np.array[nx,ny]): data for each point (x,y)
-    '''
-    
-    N,d=np.shape(X)
-    
-    if d!=2:
+    """
+
+    N, d = np.shape(X)
+
+    if d != 2:
         raise ValueError("More than 2 columns. Not ready so far (scatter_to_grid)")
-    
-    if np.sum(np.diff(X[:,0])==0)>np.sum(np.diff(X[:,1])==0):
-        xcoord=0
+
+    if np.sum(np.diff(X[:, 0]) == 0) > np.sum(np.diff(X[:, 1]) == 0):
+        xcoord = 0
     else:
-        xcoord=1
-    
-    ny = (np.diff(X[:,xcoord])==0).tolist().index(False)+1
-    
-    if np.mod(N/ny,1)!=0:
+        xcoord = 1
+
+    ny = (np.diff(X[:, xcoord]) == 0).tolist().index(False) + 1
+
+    if np.mod(N / ny, 1) != 0:
         raise ValueError("Number of points doesn't match with dimensions")
-    
-    nx = int(N/ny)
-    
-    x = X[0:N:ny,xcoord]
-    y = X[0:ny,1-xcoord]
+
+    nx = int(N / ny)
+
+    x = X[0:N:ny, xcoord]
+    y = X[0:ny, 1 - xcoord]
     if Y is None:
-        result = x,y
+        result = x, y
     else:
-        if np.size(Y)!=N:
+        if np.size(Y) != N:
             raise Exception("Inconsistent inputs dimensions (scatter_to_grid)")
-        z = np.reshape(Y,(nx,ny))
-        result = x,y,z
-    
+        z = np.reshape(Y, (nx, ny))
+        result = x, y, z
+
     return result
 
 
 def colocate_instruments(
-    time_lidar, time_rs, values_lidar, values_rs, tol=0, verbose=False
+    time_lidar, time_rs, values_lidar, values_rs, tol=600, verbose=False
 ):
     """Return the values that are colocated according to a given tolerance
     
-    [IN]
-        - time_lidar (np.array[Nl]): vector of timestamps (seconds since 1970-01-01 00:00 UTC) for lidar values
-        - time_rs (np.array[Nr]): vector of timestamps (seconds since 1970-01-01 00:00 UTC) for RS values (Nr << Nl)
-        - values_lidar (list of np.array[Nl]): list of variables to be colocated with RS
-        - values_rs (np.array[Nr]): vector of values measured by RS to be colocated with lidar
-        - tol (float): width of the interval (seconds) to consider values to be colocated
-        - verbose (bool): if False, kills the prints
+    Parameters
+    ----------
+    time_lidar : ndarray of shape (Nl,)
+        Vector of time for lidar -- seconds since 1970-01-01 00:00 UTC
         
-    [OUT]
-        - 
+    time_rs : ndarray of shape (Nr,)
+        Vector of time for RS -- seconds since 1970-01-01 00:00 UTC (Nr << Nl)
+    
+    values_lidar : list of ndarray of shape (Nl,)
+        Variables measured by lidar to be colocated with RS
+    
+    values_rs : ndarray of shape (Nr,)
+        Value measured by RS to be colocated with lidar
+    
+    tol : float, default=600
+        Width of the interval (seconds) to consider values to be colocated
+    
+    verbose : bool
+        If False, kills the prints
+    
+    
+    Returns
+    -------
+    time_coloc : ndarray of shape (Nc,)
+        Common vector of time -- seconds since 1970-01-01 00:00 UTC
+    
+    values_rs_coloc : ndarray of shape (Nc,)
+        Measures of RS on the common time grid
+    
+    values_lidar_coloc : list of ndarray of shape (Nc,)
+        Multiple measures of lidar on the common time grid
+    
+    Notes
+    -----
+    It is assumed only one value of BLH from RS has to be colocated
+    while multiple values from lidar can be colocated.
+    
+    Orders of magnitude: Nc =< Nr << Nl
     """
 
     time_coloc = []
@@ -658,23 +834,20 @@ def colocate_instruments(
 
     for it in range(len(time_rs)):
         t = time_rs[it]
-        ind_t_coloc = np.where(
-            np.logical_and(
-                time_lidar >= t,
-                time_lidar <= t + tol
-            )
-        )[0]
-        
+        ind_t_coloc = np.where(np.logical_and(time_lidar >= t, time_lidar <= t + tol))[
+            0
+        ]
+
         if verbose:
             print(
                 len(ind_t_coloc),
                 "shots colocated with RS at ",
                 dt.datetime.utcfromtimestamp(t),
             )
-        if len(ind_t_coloc)>0 and not np.isnan(values_rs[it]):
-            
+        if len(ind_t_coloc) > 0 and not np.isnan(values_rs[it]):
+
             time_coloc.append(time_lidar[ind_t_coloc[0]])
-            
+
             if verbose:
                 print(
                     "First one at ",
@@ -684,7 +857,7 @@ def colocate_instruments(
                 )
 
             values_rs_coloc.append(values_rs[it])
-            
+
             for k in range(len(values_lidar)):
                 if values_lidar[k].dtype == bool:
                     mean10_lidar = any(values_lidar[k][ind_t_coloc])

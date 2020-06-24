@@ -70,6 +70,10 @@ def file_labelleddataset():
     """File with all required material to train ADABL"""
     return os.path.join(artifactrootdir,"labelled-datasets","adabl_supervised_dataset.csv")
 
+def dir_trainedadabl():
+    """Directory where to strore Pickle object containing trained ADABL"""
+    return os.path.join(artifactrootdir,"trained-adabl")
+
 def file_trainedmodel():
     """File to Pickle object containing trained ADABL"""
     return os.path.join(artifactrootdir,"trained-adabl","adabl_classifier_tzRCS12_M200_D5.pkl")

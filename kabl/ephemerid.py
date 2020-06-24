@@ -162,15 +162,6 @@ class Sun:
         self.sunset_t = self.solarnoon_t + hourangle * 4 / 1440
 
 
-########################
-#      TEST BENCH      #
-########################
-# Launch with
-# >> python ephemerid.py
-#
-# For interactive mode
-# >> python -i ephemerid.py
-#
 if __name__ == "__main__":
     # Coord Meteopole (Toulouse, France)
     la = 43.57627

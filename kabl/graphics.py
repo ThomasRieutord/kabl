@@ -2,19 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 MODULE OF GRAPHICAL TOOLS FOR THE KABL PROGRAM.
-Provides functions to make usual plots in the problem of estimating the
-boundary layer height with K-means.
-
-Features:
-    - quicklook_data
-    - quicklook_testprofiles
-    - blhs_over_profile
-    - blhs_over_data
-    - scatterplot_blhs
-    - quicklook_output
-
-Test of the functions: `python graphics.py`
-Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
 
  +-----------------------------------------+
  |  Date of creation: 6 Aug. 2019          |
@@ -22,38 +9,6 @@ Requires the test file at '../data_samples/lidar/DAILY_MPL_5025_20180802.nc'
  |  Meteo-France                           |
  |  DSO/DOA/IED and CNRM/GMEI/LISA         |
  +-----------------------------------------+
- 
-Copyright Meteo-France, 2019, [CeCILL-C](https://cecill.info/licences.en.html) license (open source)
-
-This module is a computer program that is part of the KABL (K-means for 
-Atmospheric Boundary Layer) program. This program performs boundary layer
-height estimation for concentration profiles using K-means algorithm.
-
-This software is governed by the CeCILL-C license under French law and
-abiding by the rules of distribution of free software.  You can  use,
-modify and/ or redistribute the software under the terms of the CeCILL-C 
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info".
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability.
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the
-same conditions as regards security.
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL-C license and that you accept its terms.
 """
 
 from matplotlib import pyplot as plt
@@ -68,24 +23,40 @@ import netCDF4 as nc
 from kabl import utils
 from kabl import paths
 
-fmtImages=".png"
+fmtImages = ".png"
 # Images will be saved under this format (suffix of plt.savefig)
 
-figureDir=paths.resultrootdir
+figureDir = paths.resultrootdir
 # Images will be saved in this directory (prefix of plt.savefig)
 
-storeImages=False
+storeImages = False
 # If True, figures are saved in files but not shown
 # If False, figures are not saved in files but always shown
+
 
 def quicklook_data(nc_file, max_height=4500, with_pbl=False, with_cbh=False):
     """Give a quick look of the data, only the data.
     
-    [IN]
-        - nc_file (str): path to the netcdf file containing the data
+    Parameters
+    ----------
+    nc_file : str
+        Path to the netcdf file containing the data
     
-    [OUT]
-         (matplotlib.pyplot figure): same as blhs_over_data"""
+    max_height : {float, int}, default=4500
+        Top height on the graphic
+    
+    with_pbl : bool, default=False
+        If True, add onto the data the boundary layer height calculated
+        by the manufacturer
+    
+    with_cbh : bool, default=False
+        If True, add onto the data the first cloud base height
+        calculated by the manufacturer
+    
+    Returns
+    -------
+    None
+    """
 
     location, day, lat, lon = utils.where_and_when(nc_file)
 
@@ -98,7 +69,7 @@ def quicklook_data(nc_file, max_height=4500, with_pbl=False, with_cbh=False):
     t, z, dat = utils.extract_data(
         nc_file, max_height=max_height, to_extract=to_be_extracted
     )
-    
+
     rcs = dat["rcs_0"]
     if "pbl" in to_be_extracted:
         pbl = dat["pbl"]
@@ -135,11 +106,15 @@ def quicklook_data(nc_file, max_height=4500, with_pbl=False, with_cbh=False):
 def quicklook_testprofiles(nc_file):
     """Give a quick look of the preselected profiles, only the data.
     
-    [IN]
-        - nc_file (str): path to the netcdf file containing the data
+    Parameters
+    ----------
+    nc_file : str
+        Path to the netcdf file containing the data
     
-    [OUT]
-        - (matplotlib.pyplot figure): same as blhs_over_profile"""
+    Returns
+    -------
+    None
+    """
 
     location, day, lat, lon = utils.where_and_when(nc_file)
 
@@ -161,30 +136,38 @@ def quicklook_testprofiles(nc_file):
 
 
 def blhs_over_profile(
-    z_values,
-    data_values,
-    blhs,
-    blhs_names=None,
-    labels=None,
-    titre=None,
+    z_values, data_values, blhs, blhs_names=None, labels=None, titre=None,
 ):
-    """Plot the profile of data and the BLH (more than one can be superimposed)
+    """Plot a single profile of data and the BLH (more than one can be
+    superimposed)
     
-    [IN]
-        - z_values (np.array([Nz])): array of height values
-        - data_values (np.array([Nz])): array of data values (profile)
-        - blhs (list of np.array([Nt])): list of BLHs time series
-        - blhs_names (list of str): corresponding names of BLHs. Numbered by default.
-        - labels (np.array([Nz])): array of clusters labels. Different for each cluster, but not meaningful on its own.
-        - titre (str): Title of plot. Default is "Lidar backscatter | "+day
-        - storeImages (opt, bool): if True, the figures are saved in the figureDir directory. Default is False
-        - fmtImages (opt, str): format under which figures are saved when storeImages=True. Default is .png
-        - figureDir (opt, str): directory in which figures are saved when storeImages=True. Default is current directory.
+    Parameters
+    ----------
+    z_values : ndarray of shape (Nz,)
+        Height values
+        
+    data_values : ndarray of shape (Nz,)
+        Data values along height
+        
+    blhs : list of array-like of shape (Nt,)
+        Boundary layer height time series
+        
+    blhs_names : list of str, default=None
+        Corresponding names of BLHs. Numbered by default.
     
-    [OUT]
-        - (matplotlib.pyplot figure): profile plot with horizontal bars for BLHs
-            In the X-axis is the data from which we draw the profile (usually the range-corrected signal)
-            In the Y-axis are the altitude values
+    labels : ndarray of shape (Nz,), default=None
+        Clusters labels. BEWARE: the cluster identification number are
+        random. Only borders matter.
+    
+    titre : str, default=None
+        Title of plot. Default is "Lidar backscatter | "+day
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Profile plot with horizontal bars for BLHs. In the X-axis is the
+        data from which we draw the profile (usually the
+        range-corrected signal). In the Y-axis are the altitude values
     """
 
     if blhs_names is None:
@@ -193,7 +176,7 @@ def blhs_over_profile(
         else:
             blhs_names = "BLH"
 
-    plt.figure(figsize=(14, 7))
+    fig = plt.figure(figsize=(14, 7))
     plt.plot(data_values, z_values, linewidth=2, label="RCS profile")
 
     vmin = np.nanmin(data_values)
@@ -228,47 +211,58 @@ def blhs_over_profile(
     plt.legend()
     plt.tight_layout()
     if storeImages:
-        plt.savefig(os.path.join(figureDir,"blhs_over_profile"+fmtImages))
+        plt.savefig(os.path.join(figureDir, "blhs_over_profile" + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+"blhs_over_profile"+fmtImages)
+        print("Figure saved:", figureDir + "blhs_over_profile" + fmtImages)
     else:
         plt.show(block=False)
-    plt.show(block=False)
+    
+    return fig
 
 
 def blhs_over_data(
-    t_values,
-    z_values,
-    bckgrd_data,
-    blhs,
-    blhs_names=None,
-    blh_rs=None,
-    titre=None,
+    t_values, z_values, bckgrd_data, blhs, blhs_names=None, blh_rs=None, titre=None,
 ):
     """
     Plot the BLH time series over some background data (usually the 
     range-corrected signal). More than one BLH time series can be
     superimposed.
     
-    [IN]
-        - t_values (np.array([Nt])): array of time values (POSIX timestamps)
-        - z_values (np.array([Nz])): array of height values
-        - bckgrd_data (np.array([Nt,Nz])): array of backscatter signal Nt is len of time, Nz is len of height
-        - blhs (list of np.array([Nt])): list of BLHs time series
-        - blhs_names (list of str): corresponding names of BLHs. Numbered by default.
-        - blh_rs (tuple[2] or list[2]): if any, BLH measured by radiosondes. First element is the list of time, second is the list of BLH values.
-        - titre (str): Title of plot. Default is "Lidar backscatter | "+day
-        - storeImages (opt, bool): if True, the figures are saved in the figureDir directory. Default is False
-        - fmtImages (opt, str): format under which figures are saved when storeImages=True. Default is .png
-        - figureDir (opt, str): directory in which figures are saved when storeImages=True. Default is current directory.
     
-    [OUT]
-        - (matplotlib.pyplot figure): display profil plot:
-            It has color distribution of backscatter signal (RCS) with the manufacturer blh in black and estimated blh in yellow
-            In the X-axis are the Nt times inputs of backscatter signal
-            In the Y-axis are the altitude values"""
+    Parameters
+    ----------
+    t_values : ndarray of shape (Nt,)
+        Time values as POSIX timestamps:
+        number of seconds since 1970/01/01 00:00 UTC
     
+    z_values : ndarray of shape (Nz,)
+        Height values
+    
+    bckgrd_data : ndarray of shape (Nt,Nz)
+        Data values along height
+    
+    blhs : list of array-like of shape (Nt,)
+        Boundary layer height time series
+    
+    blhs_names : list of str, default=None
+        Corresponding names of BLHs. Numbered by default.
+    
+    blh_rs : {tuple, list} of length 2, default=None
+        BLH measured by radiosondes, if any. First element is the list
+        of time, second is the list of BLH values.
         
+    titre : str, default=None
+        Title of plot. Default is "Lidar backscatter | "+day
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Time-altitude graph with backscatter signal (RCS) in shades of
+        colors, with BLHs estimation superimposed. In the X-axis are the
+        Nt times. In the Y-axis are the altitude values
+    """
+
     if blhs_names is None:
         if isinstance(blhs, list):
             blhs_names = ["BLH {}".format(k + 1) for k in range(len(blhs))]
@@ -320,9 +314,9 @@ def blhs_over_data(
 
     if storeImages:
         fileName = "_".join(["blhsOverData", date])
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
 
@@ -333,20 +327,23 @@ def quicklook_output(nc_file):
     """Same as blhs_over_data, but directly from the output netcf file
     (and with less flexibility).
     
-    [IN]
-        - nc_file (str): path to the netcdf file containing the data
+    Parameters
+    ----------
+    nc_file : str
+        Path to the netcdf file containing the data
     
-    [OUT]
-        - (matplotlib.pyplot figure): same as blhs_over_data"""
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Same as kabl.graphics.blhs_over_data
+    """
 
     location, day, lat, lon = utils.where_and_when(nc_file)
-    t, z, dat = utils.extract_data(
-        nc_file, to_extract=["rcs_0", "blh_kabl", "pbl"]
-    )
-    rcs =  dat["rcs_0"]
+    t, z, dat = utils.extract_data(nc_file, to_extract=["rcs_0", "blh_kabl", "pbl"])
+    rcs = dat["rcs_0"]
     blh_new = dat["blh_kabl"]
     blh_mnf = dat["pbl"]
-    
+
     fig = blhs_over_data(
         t,
         z,
@@ -360,19 +357,24 @@ def quicklook_output(nc_file):
 
 
 def quicklook_benchmark(
-    data_file,
-    blh_file,
-    rs_file=None,
+    data_file, blh_file, rs_file=None,
 ):
     """Same as blhs_over_data, but directly from the output netcf file
     (and with less flexibility).
     
-    [IN]
-        - data_file (str): path to the netcdf file containing the data
-        - data_file (str): path to the netcdf file containing the BLH estimation
+    Parameters
+    ----------
+    data_file : str
+        Path to the netcdf file containing the data
     
-    [OUT]
-        - (matplotlib.pyplot figure): same as blhs_over_data"""
+    blh_file : str
+        Path to the netcdf file containing the BLH estimation
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Same as kabl.graphics.blhs_over_data
+    """
 
     location, day, lat, lon = utils.where_and_when(data_file)
     t, z, rcss = utils.extract_data(data_file, to_extract=["rcs_0"])
@@ -405,37 +407,45 @@ def quicklook_benchmark(
 
 
 def scatterplot_blhs(
-    time,
-    blh_x,
-    blh_y,
-    blh_xlabel=None,
-    blh_ylabel=None,
-    titre=None,
+    time, blh_x, blh_y, blh_xlabel=None, blh_ylabel=None, titre=None,
 ):
-    """
-    Daily plot of differences between manufacturer BLH and estimated BLH
+    """Scatter-plot with hour coloration to compare BLHs estimations
     
-    [IN]
-        - time (np.array([Nt])): array of time values
-        - blh_ref (np.array([Nt])): array of BLH estimated by constructor
-        - blh_new (np.array([Nt])): array of BLH estimation by Kmeans algorithm
-        - titre (str): Title of plot. Default is 'Manufacturer vs estimated BLH \n corr: {}'
-        - storeImages (opt, bool): if True, the figures are saved in the figureDir directory. Default is False
-        - fmtImages (opt, str): format under which figures are saved when storeImages=True. Default is .png
-        - figureDir (opt, str): directory in which figures are saved when storeImages=True. Default is current directory.
+    Parameters
+    ----------
+    time : array-like of shape (Nt,)
+        Time values as POSIX timestamps:
+        number of seconds since 1970/01/01 00:00 UTC
     
-    [OUT]
-        - (matplotlib.pyplot figure): display profil plot:
-            It has points distribution of backscatter signal (RCS) with the manufactuer BLH and estimated BLH.
-            In the X-axis are the calculated values of BLH by constructor
-            In the Y-axis are the calculated values of BLH by Kmeans algorithm
+    blh_x : array-like of shape (Nt,)
+        BLH time series to put on X-axis
+    
+    blh_y : array-like of shape (Nt,)
+        BLH time series to put on Y-axis
+    
+    blh_xlabel : str, default=None
+        Name of the BLH estimation on X-axis
+    
+    blh_ylabel : str, default=None
+        Name of the BLH estimation on Y-axis
+        
+    titre : str, default=None
+        Title of plot. Default is "Manufacturer vs estimated BLH \n corr: {}"
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Joint distribution of two estimation of boundary layer height.
+        Values of a BLH estimation is on X-axis, the other on Y-axis.
+        If they agree, they will align with the y=x line drawn in black.
     """
 
     date = dt.datetime.utcfromtimestamp(time[1]).strftime("%Y%m%d")
     corr = np.corrcoef(blh_x, blh_y)[0, 1]
     if titre is None:
         titre = "Manufacturer vs estimated BLH \n" + date + " corr={0:.2f}".format(corr)
-    
+
     fig = plt.figure(figsize=(14, 7))
     plt.plot([200, 2500], [200, 2500], "k-", linewidth=2)
     print("date=", date, type(date))
@@ -459,45 +469,52 @@ def scatterplot_blhs(
 
     plt.title(titre)
     plt.tight_layout()
-    
+
     if storeImages:
         fileName = "_".join(["scatterplotBLHs", date])
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
-    
+
     return fig
 
 
 def estimator_quality(
-    accuracies,
-    chronos,
-    estimator_names,
-    titl=None,
+    accuracies, chronos, estimator_names, titl=None,
 ):
     """Display score versus computation time for a series of estimators.
     Best estimators are in the bottom-right corner.
     
-    Abcissa is the R2-score (1-mse/variance: the higher, the better)
-    Ordinate is the computing time.
-    Both are recorded for Ne estimators and Nr random split of testing
+    Abcissa is the accuracy. Ordinate is the computing time. Both are 
+    recorded for Ne estimators and Nr random split of testing
     and training sets.
     
-    [IN]
-        - accuracies (np.array[Ne,Nr]): R2-score for all estimators and random split
-        - chronos (np.array[Ne,Nr]): computing time for all estimators and random split
-        - estimator_names (list[Ne] of str): names of the estimators
-        - titl (str): if provided, change the title of the figure
+    Parameters
+    ----------
+    accuracies : ndarray of shape (Ne,Nr)
+        Accuracy score for all estimators and random split
+        
+    chronos : ndarray of shape (Ne,Nr)
+        Computing time for all estimators and random split
     
-    [OUT] figure
+    estimator_names : list of str
+        Names of the estimators
+        
+    titl : str, default=None
+        Title of plot. Default is "Performance/speed comparison of estimators"
+    
+    [Returns
+    -------
+    `matplotlib.pyplot figure`
+        Abcissa is the accuracy. Ordinate is the computing time.
     """
 
     if titl is None:
         titl = "Performance/speed comparison of estimators"
 
-    plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(8, 8))
     plt.title(titl)
     for icl in range(len(estimator_names)):
         xtext = np.mean(accuracies[icl, :])
@@ -507,84 +524,128 @@ def estimator_quality(
         )
         plt.text(xtext, ytext, estimator_names[icl], fontweight="bold")
     plt.grid()
-    plt.xlabel("R2-score")
+    plt.xlabel("Accuracy")
     plt.ylabel("Comp. time")
     plt.legend(loc="best")
     if storeImages:
         fileName = "estimator_quality"
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
+    
+    return fig
 
 
-def clusterZTview(t_values,z_values,zoneID,titl=None):
-    '''Plots cluster labels in the same time and altitude grid where
-    measurements have been done (boundary layer classification).
-    
-    [IN]
-        - t_values (np.array[nt]): vector of time
-        - z_values (np.array[nalt]): vector of altitude
-        - zoneID (np.array[N]): cluster labels of each obs
-        - delete_mask (np.array[nt*nalt]): mask at True when observation has been removed by the deletelines function (to avoid NaNs)
-        - fileName (str): customised file name for saving the figure
-        - clustersIDs (dict): dictionary associating cluster labels to boundary layer types
-                Example: {0:"CL",1:"SBL",2:"FA",3:"ML"}. Default is {0:0,1:1,...}.
-        - displayClustersIDs (bool): if True, displays the clusterIDs over the graph, at the center of the cluster.
-        - titl (str): customised title for the figure
-        
-    [OUT] clusters labels on a time-altitude grid
-        In X-axis is the time
-        In Y-axis is the height (m agl)
-        Clusters are shown with differents colors.'''
+def clusterZTview(t_values, z_values, zoneID, titl=None):
+    """Plots cluster labels in the same time and altitude grid where
+    measurements have been done
     
     
-    clusterMarks={0:'bo',1:'gx',2:'r^',3:'cv',4:'ys',5:'m*',6:'kp',7:'gd',8:'bx',
-        9:'ro',10:'c*',11:'y+',12:'m<',13:'k,'}
+    Parameters
+    ----------
+    t_values : ndarray of shape (Nt,)
+        Time values as POSIX timestamps:
+        number of seconds since 1970/01/01 00:00 UTC
     
-    K=np.max(zoneID)+1
-    clustersIDs=np.arange(K)
+    z_values : ndarray of shape (Nz,)
+        Height values
     
+    zoneID : ndarray of shape (N,)
+        Cluster labels of each obs
+    
+    titl : str, default=None
+        Title of plot. Default is "Cluster in time-altitude grid"
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Time-altitude graph with cluster labels in shades of colors. In
+        the X-axis are the Nt times. In the Y-axis are the altitude values
+    """
+
+    clusterMarks = {
+        0: "bo",
+        1: "gx",
+        2: "r^",
+        3: "cv",
+        4: "ys",
+        5: "m*",
+        6: "kp",
+        7: "gd",
+        8: "bx",
+        9: "ro",
+        10: "c*",
+        11: "y+",
+        12: "m<",
+        13: "k,",
+    }
+
+    K = np.max(zoneID) + 1
+    clustersIDs = np.arange(K)
+
     if titl is None:
-        titl="Cluster in time-altitude grid"
-    
+        titl = "Cluster in time-altitude grid"
+
     clist = []
     cticks = []
     cticklabels = []
     for k in range(K):
-        cticks.append(k+0.5)
+        cticks.append(k + 0.5)
         cticklabels.append(clustersIDs[k])
         clist.append(clusterMarks[clustersIDs[k]][0])
-    colormap=ListedColormap(clist)
-    
+    colormap = ListedColormap(clist)
+
     dt_values = [dt.datetime.utcfromtimestamp(t) for t in t_values]
-    
-    #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-    fig=plt.figure()
+
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    fig = plt.figure()
     plt.title(titl)
-    plt.pcolormesh(dt_values,z_values,zoneID.T,vmin=0,vmax=K,cmap=colormap)
-    cbar=plt.colorbar(label="Cluster label")
+    plt.pcolormesh(dt_values, z_values, zoneID.T, vmin=0, vmax=K, cmap=colormap)
+    cbar = plt.colorbar(label="Cluster label")
     cbar.set_ticks(cticks)
     cbar.set_ticklabels(cticklabels)
     plt.gcf().autofmt_xdate()
     plt.xlabel("Time (UTC)")
     plt.ylabel("Alt (m agl)")
     if storeImages:
-        fileName="clusterZTview"
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        fileName = "clusterZTview"
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
-    #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+    
+    return fig
 
-
-
-def mean_by_month(
-    datavaluesList, datatimesList, datanamesList=None, colorList=None
-):
-    """Calculate the average of all values in the same month.
+def mean_by_month(datavaluesList, datatimesList, datanamesList=None, colorList=None):
+    """Calculate and plot the average of all values in the same month.
+    
+    Parameters
+    ----------
+    datavaluesList : list of array-like of shape (Nt,)
+        Time series of data to average
+    
+    datavaluesList : list of array-like of shape (Nt,)
+        Time values as datetime.datetime objects, for each data provided
+    
+    datanamesList : list of str, default=None
+        Names of the data provided. Default is numbered
+    
+    colorList : str, default=None
+        Colors to attribute to each data
+    
+    
+    Returns
+    -------
+    averages : list of array-like
+        Monthly average for each data provided
+    
+    effectifs : list of array-like
+        Number of points used to perform the monthly average
     """
 
     if not isinstance(datavaluesList, list):
@@ -599,8 +660,7 @@ def mean_by_month(
         colorList = [
             cmap(np.mod(0.1 + k * np.pi / 5, 1)) for k in range(len(datavaluesList))
         ]
-    
-    
+
     averages = []
     effectifs = []
     monthLabels = [
@@ -617,17 +677,17 @@ def mean_by_month(
         "Nov",
         "Dec",
     ]
-    
+
     plt.figure()
     plt.title("Monthly average and quartiles")
-    
+
     for i in range(len(datavaluesList)):
         dataValues = datavaluesList[i]
         dataTime = datatimesList[i]
-        
+
         df = pd.DataFrame(dataValues, index=dataTime)
         gbm = df.groupby(df.index.month)
-        
+
         plt.plot(
             gbm.mean().index,
             gbm.mean().values,
@@ -643,18 +703,18 @@ def mean_by_month(
             color=colorList[i],
             alpha=0.1,
         )
-        
+
         averages.append(gbm.mean().values)
         effectifs.append(gbm.count())
-    
+
     plt.xticks(gbm.mean().index, monthLabels)
     plt.grid()
     plt.legend(loc="best")
     if storeImages:
-        fileName="seasonalcycle_BLHs"
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        fileName = "seasonalcycle_BLHs"
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
 
@@ -662,27 +722,40 @@ def mean_by_month(
 
 
 def mean_by_6min(
-    datavaluesList,
-    datatimesList,
-    datanamesList=None,
-    dataRS=None,
-    colorList=None,
+    datavaluesList, datatimesList, datanamesList=None, dataRS=None, colorList=None,
 ):
     """Calculate the average of all values in the same 6 minutes slot.
     
-    [IN]
-        - datavaluesList (float,list): list of values
-        - datatimesList (datetime,list): list of times values
-        - dataRS (opt, list): list of info about radiosoundings, if any.
-        - datanameList (opt,str,list): list of description values to draw
-        - colorList (opt,list): list of colors to use
-        - plot (opt,bool): If True show plot
+    Parameters
+    ----------
+    datavaluesList : list of array-like of shape (Nt,)
+        Time series of data to average
     
-    [OUT]
-        - (matplotlib.pyplot figure): diurnal cycle mean over datatimes values
-        Each plot represents the diurnal cycle of given in input
-        In X-axis is the local hour
-        In Y-axis is fonction of datavaluesList entered
+    datavaluesList : list of array-like of shape (Nt,)
+        Time values as datetime.datetime objects, for each data provided
+    
+    datanamesList : list of str, default=None
+        Names of the data provided. Default is numbered
+    
+    dataRS : {tuple, list} of float, default=None
+        Info about radiosoundings. Contains mean, 0.25 and 0.75 quantiles
+        for the launches of 11:15 and 23:15 UTC.
+        ```dataRS = (
+            mean11utc, q25_11utc, q75_11utc,
+            mean23utc, q25_23utc, q75_23utc
+        )```
+    
+    colorList : str, default=None
+        Colors to attribute to each data
+    
+    
+    Returns
+    -------
+    averages : list of array-like
+        Monthly average for each data provided
+    
+    effectifs : list of array-like
+        Number of points used to perform the monthly average
     """
 
     if not isinstance(datavaluesList, list):
@@ -698,7 +771,7 @@ def mean_by_6min(
         colorList = [
             cmap(np.mod(0.1 + k * np.pi / 5, 1)) for k in range(len(datavaluesList) + 1)
         ]
-    
+
     plt.figure()
     plt.title("6-minute average and quartiles")
 
@@ -742,64 +815,110 @@ def mean_by_6min(
     plt.grid()
     plt.legend(loc="best")
     if storeImages:
-        fileName="diurnalcycle_BLHs"
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        fileName = "diurnalcycle_BLHs"
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
 
     return averages, effectifs
 
 
-def plot_samplesize(
-    effectifs,
-    groupby,
-):
+def plot_samplesize(effectifs, groupby):
     """
     Display the sample size for each average previously computed
+    
+    
+    Parameters
+    ----------
+    effectifs : list of array-like
+        Number of points used to perform the monthly average
+    
+    groupby : {'6min', 'month'}
+        Specify how were grouped the data
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Line plot with all sample size and the correct time axis
+    
     """
-    
+
     algos = ["KABL", "ADABL", "INDUS", "RS"]
-    
-    if groupby=="6min":
+
+    if groupby == "6min":
         titl = "Number of values for 6-minute average"
-        fileName="diurnalcycle_samplesize"
-        x = np.linspace(0,24,241)
-    elif groupby=="month":
+        fileName = "diurnalcycle_samplesize"
+        x = np.linspace(0, 24, 241)
+    elif groupby == "month":
         titl = "Number of values for monthly average"
-        fileName="seasonalcycle_samplesize"
+        fileName = "seasonalcycle_samplesize"
         x = [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
         ]
     else:
-        raise ValueError("Unsupported groupby type:",groupby)
-        
-    plt.figure()
+        raise ValueError("Unsupported groupby type:", groupby)
+
+    fig = plt.figure()
     plt.title(titl)
     for k in range(len(effectifs)):
         plt.plot(x, effectifs[k], label=algos[k])
     plt.grid()
     plt.legend()
     if storeImages:
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
-        
+    
+    return fig
 
-def bar_scores(scores, scorename, algos = None, colors = None):
+
+def bar_scores(scores, scorename, algos=None, colors=None):
+    """Bar plot with the quality score estimated to evaluate KABL and
+    ADABL estimations.
     
     
+    Parameters
+    ----------
+    scores : array-like
+        Score values of each algorithm
     
+    scorename : {'errl1', 'errl2', 'corr'}
+        Name of the score
+    
+    algos : array-like of str, default=None
+        Names of all algorithms. Default is numbered
+    
+    colors : array-like of matplotlib.pyplot colors
+        Colors to attribute to each algorithm
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot figure`
+        Bar plot with the quality score
+    """
     if algos is None:
-        algos = ["Algo "+str(k+1) for k in range(len(scores))]
-    
+        algos = ["Algo " + str(k + 1) for k in range(len(scores))]
+
     if colors is None:
-        colors = [plt.get_cmap("tab20")(k/len(scores)) for k in range(len(scores))]
-    
+        colors = [plt.get_cmap("tab20")(k / len(scores)) for k in range(len(scores))]
+
     if scorename == "errl1":
         titl = "Overall average gap with RS"
     elif scorename == "errl2":
@@ -807,41 +926,64 @@ def bar_scores(scores, scorename, algos = None, colors = None):
     elif scorename == "corr":
         titl = "Overall correlation with RS"
     else:
-        raise ValueError("Unknown score:",scorename)
-    
-    
+        raise ValueError("Unknown score:", scorename)
+
     sns.set()
-    
-    plt.figure()
+
+    fig = plt.figure()
     plt.title(titl)
     plt.bar(
-        algos,
-        scores,
-        color=colors,
+        algos, scores, color=colors,
     )
     if storeImages:
         fileName = scorename
-        plt.savefig(os.path.join(figureDir,fileName+fmtImages))
+        plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
-        print("Figure saved:",figureDir+fileName+fmtImages)
+        print("Figure saved:", figureDir + fileName + fmtImages)
     else:
         plt.show(block=False)
+    
+    return fig
 
 
 def plot_cv_indices(cv, X, y, group=None, lw=10):
     """Create a sample plot for indices of a cross-validation object.
     
+    
+    Parameters
+    ----------
+    cv : `sklearn.model_selection` object with `split` method
+        Cross-validation splitter
+    
+    X : array-like
+        Design matrix, input data
+    
+    y : array-like
+        Response vector, output data
+    
+    group : array-like of int
+        Group labels for the cross-validation splits
+    
+    
+    Returns
+    -------
+    `matplotlib.pyplot Axes`
+        Line plots representing the indices of each cross-validation split
+    
+    
+    Notes
+    -----
     16/06/2020
     Source: https://scikit-learn.org/stable/auto_examples/model_selection/plot_cv_indices.html
     """
-    
+
     fig, ax = plt.subplots()
-    
+
     if group is None:
         group = np.zeros_like(y)
-    
+
     n_splits = cv.get_n_splits()
-    
+
     # Generate the training/testing visualizations for each CV split
     for ii, (tr, tt) in enumerate(cv.split(X=X, y=y, groups=group)):
         # Fill in indices with the training/test groups
@@ -850,24 +992,44 @@ def plot_cv_indices(cv, X, y, group=None, lw=10):
         indices[tr] = 0
 
         # Visualize the results
-        ax.scatter(range(len(indices)), [ii + .5] * len(indices),
-                   c=indices, marker='_', lw=lw, cmap=plt.cm.coolwarm,
-                   vmin=-.2, vmax=1.2, alpha=0.1)
+        ax.scatter(
+            range(len(indices)),
+            [ii + 0.5] * len(indices),
+            c=indices,
+            marker="_",
+            lw=lw,
+            cmap=plt.cm.coolwarm,
+            vmin=-0.2,
+            vmax=1.2,
+            alpha=0.1,
+        )
 
     # Plot the data classes and groups at the end
-    ax.scatter(range(len(X)), [ii + 1.5] * len(X),
-               c=y, marker='_', lw=lw, cmap=plt.cm.Paired)
+    ax.scatter(
+        range(len(X)), [ii + 1.5] * len(X), c=y, marker="_", lw=lw, cmap=plt.cm.Paired
+    )
 
-    ax.scatter(range(len(X)), [ii + 2.5] * len(X),
-               c=group, marker='_', lw=lw, cmap=plt.cm.Paired)
+    ax.scatter(
+        range(len(X)),
+        [ii + 2.5] * len(X),
+        c=group,
+        marker="_",
+        lw=lw,
+        cmap=plt.cm.Paired,
+    )
 
     # Formatting
-    yticklabels = list(range(n_splits)) + ['class', 'group']
-    ax.set(yticks=np.arange(n_splits+2) + .5, yticklabels=yticklabels,
-           xlabel='Sample index', ylabel="CV iteration",
-           ylim=[n_splits+2.2, -.2], xlim=[0, 100])
-    ax.set_title('{}'.format(type(cv).__name__), fontsize=15)
-    
+    yticklabels = list(range(n_splits)) + ["class", "group"]
+    ax.set(
+        yticks=np.arange(n_splits + 2) + 0.5,
+        yticklabels=yticklabels,
+        xlabel="Sample index",
+        ylabel="CV iteration",
+        ylim=[n_splits + 2.2, -0.2],
+        xlim=[0, 100],
+    )
+    ax.set_title("{}".format(type(cv).__name__), fontsize=15)
+
     plt.show(block=False)
-    
+
     return ax

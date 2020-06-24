@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 """
 Unitary tests of the functions in ../kabl/utils.py
-
 Must be executed inside the `tests/` directory
 """
 
