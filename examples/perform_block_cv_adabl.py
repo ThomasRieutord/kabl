@@ -31,6 +31,6 @@ for ii, (idx_train, idx_test) in enumerate(gkf.split(X=X, y=y, groups=group)):
     y_train = y[idx_train]
     y_test = y[idx_test]
 
-accuracies, chronos, classifiers_keys = adabl.block_cv_adabl(df,n_folds=6, predictors=predictors)
+accuracies, chronos, classifiers_keys = adabl.block_crossval(df,n_folds=6, predictors=predictors)
 
 graphics.estimator_quality(accuracies,chronos,classifiers_keys)
