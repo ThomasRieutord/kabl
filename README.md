@@ -24,7 +24,9 @@ This software is edited by Meteo-France.
 Licence
 --------
 This software is under [CeCILL](https://cecill.info/licences.en.html) licence (open source, French equivalent to GNU/GPL licence).
-Terms are in the LICENCE.txt file.
+Terms are in the Licence_CeCILL_V2.1-en.txt file.
+Pieces of data provided in the directory `data-sample` are only meant to test this code.
+For other use of the data, or access to the full dataset, please ask the owner of the repository.
 
 Installation
 =============
