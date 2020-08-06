@@ -18,6 +18,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import netCDF4 as nc
+import os.path
 
 # Local packages
 from kabl import utils
@@ -313,7 +314,7 @@ def blhs_over_data(
     plt.tight_layout()
 
     if storeImages:
-        fileName = "_".join(["blhsOverData", date])
+        fileName = "_".join(["blhsOverData", date, paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
@@ -471,7 +472,7 @@ def scatterplot_blhs(
     plt.tight_layout()
 
     if storeImages:
-        fileName = "_".join(["scatterplotBLHs", date])
+        fileName = "_".join(["scatterplotBLHs", date, paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
@@ -679,7 +680,7 @@ def mean_by_month(datavaluesList, datatimesList, datanamesList=None, colorList=N
     ]
 
     plt.figure()
-    plt.title("Monthly average and quartiles")
+    plt.title("Monthly average and quartiles | " + paths.site)
 
     for i in range(len(datavaluesList)):
         dataValues = datavaluesList[i]
@@ -711,7 +712,7 @@ def mean_by_month(datavaluesList, datatimesList, datanamesList=None, colorList=N
     plt.grid()
     plt.legend(loc="best")
     if storeImages:
-        fileName = "seasonalcycle_BLHs"
+        fileName = "_".join(["seasonalcycle","BLHs",paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
@@ -773,7 +774,7 @@ def mean_by_6min(
         ]
 
     plt.figure()
-    plt.title("6-minute average and quartiles")
+    plt.title("Six-minute average and quartiles | " + paths.site)
 
     averages = []
     effectifs = []
@@ -815,7 +816,7 @@ def mean_by_6min(
     plt.grid()
     plt.legend(loc="best")
     if storeImages:
-        fileName = "diurnalcycle_BLHs"
+        fileName = "_".join(["diurnalcycle","BLHs",paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
@@ -850,11 +851,11 @@ def plot_samplesize(effectifs, groupby):
 
     if groupby == "6min":
         titl = "Number of values for 6-minute average"
-        fileName = "diurnalcycle_samplesize"
+        cycletype = "diurnalcycle"
         x = np.linspace(0, 24, 241)
     elif groupby == "month":
         titl = "Number of values for monthly average"
-        fileName = "seasonalcycle_samplesize"
+        cycletype = "seasonalcycle"
         x = [
             "Jan",
             "Feb",
@@ -872,6 +873,8 @@ def plot_samplesize(effectifs, groupby):
     else:
         raise ValueError("Unsupported groupby type:", groupby)
 
+    titl = titl + " | " + paths.site
+    
     fig = plt.figure()
     plt.title(titl)
     for k in range(len(effectifs)):
@@ -879,6 +882,7 @@ def plot_samplesize(effectifs, groupby):
     plt.grid()
     plt.legend()
     if storeImages:
+        fileName = "_".join([cycletype,"samplesize",paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)
@@ -888,7 +892,7 @@ def plot_samplesize(effectifs, groupby):
     return fig
 
 
-def bar_scores(scores, scorename, algos=None, colors=None):
+def bar_scores(scores, scorename, algos=None, lowupbounds=None, colors=None):
     """Bar plot with the quality score estimated to evaluate KABL and
     ADABL estimations.
     
@@ -903,6 +907,10 @@ def bar_scores(scores, scorename, algos=None, colors=None):
     
     algos : array-like of str, default=None
         Names of all algorithms. Default is numbered
+    
+    lowupbounds : ndarray of shape (2,len(scores)), default=None
+        Confidence interval for the score values. First line gives lower
+        bound, second line gives upper bound.
     
     colors : array-like of matplotlib.pyplot colors
         Colors to attribute to each algorithm
@@ -927,16 +935,22 @@ def bar_scores(scores, scorename, algos=None, colors=None):
         titl = "Overall correlation with RS"
     else:
         raise ValueError("Unknown score:", scorename)
-
+    
+    titl = titl + " | " + paths.site
+    
+    if not lowupbounds is None:
+        lowupbounds[0,:]=scores-lowupbounds[0,:]
+        lowupbounds[1,:]=lowupbounds[1,:]-scores
+        
     sns.set()
 
     fig = plt.figure()
     plt.title(titl)
     plt.bar(
-        algos, scores, color=colors,
+        algos, scores, yerr=lowupbounds, color=colors,
     )
     if storeImages:
-        fileName = scorename
+        fileName = "_".join([scorename, paths.site])
         plt.savefig(os.path.join(figureDir, fileName + fmtImages))
         plt.close()
         print("Figure saved:", figureDir + fileName + fmtImages)

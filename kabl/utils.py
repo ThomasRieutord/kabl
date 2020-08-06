@@ -745,7 +745,7 @@ def scatter_to_grid(X, Y=None):
         Coordinates on Y-axis
     
     z : ndarray of shape (nx,ny)
-        Data for each point (x,y)
+        Data for each point (x,y). Only returned when `Y` is provided
     
     
     Notes
@@ -868,3 +868,67 @@ def colocate_instruments(
     values_lidar_coloc = [np.array(var) for var in values_lidar_coloc]
 
     return np.array(time_coloc), np.array(values_rs_coloc), values_lidar_coloc
+
+
+def bootstrap_confidence_interval(
+    func,
+    values,
+    sample_size: int=None,
+    n_bootstraps: int=1000,
+    alpha: int=0.05
+):
+    """Estimate univariate confidence interval with precentile bootstrap
+    method.
+    
+    
+    Parameters
+    ----------
+    func: callable
+        Estimation on which one wants to estimate the confidence interval
+    
+    values: ndarray
+        Orginal sample. Must comply with `func` input requirements
+    
+    sample_size: int
+        Size of bootstrap samples
+    
+    n_bootstraps: int
+        Number of bootstrap samples on which are computed the quantiles
+        
+    alpha: float in ]0,1[
+        Level of confidence. Central estimation has a probability
+        1-alpha to be inside the confidence interval
+    
+    
+    Returns
+    -------
+    ci_low: float
+        Lower bound of the confidence interval
+    
+    ci_up: float
+        Upper bound of the confidence interval
+    
+    
+    References
+    ----------
+    Davison, A. C., & Hinkley, D. V. (1997). Bootstrap methods and their
+    application (No. 1). Cambridge university press. (equ. 5.18 p. 203)
+    
+    Efron, B. (1960). Tibshirani,(1993), An Introduction to the
+    Bootstrap. Monographs on Statistics and Applied Probability.
+    Chapman & Hall/CRC, 1. (equ 13.5 p. 171)
+    """
+    
+    if sample_size is None:
+        sample_size = values.size
+    
+    bootstrap_estims = np.zeros(n_bootstraps)
+    
+    for ib in range(n_bootstraps):
+        idx = np.random.choice(np.arange(values.size),sample_size)
+        bootstrap_estims[ib] = func(values,idx)
+    
+    ci_low = np.quantile(bootstrap_estims,alpha/2)
+    ci_up = np.quantile(bootstrap_estims,1-alpha/2)
+    
+    return ci_low, ci_up

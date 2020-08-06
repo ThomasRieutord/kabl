@@ -9,7 +9,9 @@ from kabl.utils import *
 from kabl import paths
 
 import os
+import numpy as np
 import datetime as dt
+from scipy.stats import norm
 
 # get_default_params
 #--------------------
@@ -178,3 +180,21 @@ def test_colocate_instruments():
                         )
     
     assert all([arr.shape==(Nr,) for arr in val_lidar_coloc+[t_coloc,val_rs_coloc]])
+
+# bootstrap_confidence_interval
+#-------------------------------
+
+def test_bootstrap_confidence_interval():
+    
+    N=3000
+    X = np.random.randn(N)
+    
+    handmean = lambda x,m: x[m].sum()/m.size
+    
+    alpha = 0.1
+    ci_low, ci_up = bootstrap_confidence_interval(handmean, X, alpha=alpha)
+    
+    tci_low = X.mean()+norm.ppf(alpha)/np.sqrt(N)
+    tci_up = X.mean()+norm.ppf(1-alpha)/np.sqrt(N)
+    
+    assert abs(tci_up-ci_up) + abs(tci_low-ci_low) < 0.02

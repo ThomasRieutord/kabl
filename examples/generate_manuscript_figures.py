@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-COMPARE ESTIMATION OF BOUNDARY LAYER HEIGHT
-FROM RADIOSOUNDINGS AND FROM KABL.
+SCRIPT GENERATING THE FIGURES OF THE STUDY BASED ON KABL PROGRAM
 
  +-----------------------------------------+
  |  Date of creation: 22 Oct. 2019         |
@@ -10,38 +9,6 @@ FROM RADIOSOUNDINGS AND FROM KABL.
  |  Meteo-France                           |
  |  DSO/DOA/IED and CNRM/GMEI/LISA         |
  +-----------------------------------------+
- 
-Copyright Meteo-France, 2019, [CeCILL-C](https://cecill.info/licences.en.html) license (open source)
-
-This module is a computer program that is part of the KABL (K-means for 
-Atmospheric Boundary Layer) program. This program performs boundary layer
-height estimation for concentration profiles using K-means algorithm.
-
-This software is governed by the CeCILL-C license under French law and
-abiding by the rules of distribution of free software.  You can  use,
-modify and/ or redistribute the software under the terms of the CeCILL-C 
-license as circulated by CEA, CNRS and INRIA at the following URL
-"http://www.cecill.info".
-
-As a counterpart to the access to the source code and  rights to copy,
-modify and redistribute granted by the license, users are provided only
-with a limited warranty  and the software's author,  the holder of the
-economic rights,  and the successive licensors  have only  limited
-liability.
-
-In this respect, the user's attention is drawn to the risks associated
-with loading,  using,  modifying and/or developing or reproducing the
-software by the user in light of its specific status of free software,
-that may mean  that it is complicated to manipulate,  and  that  also
-therefore means  that it is reserved for developers  and  experienced
-professionals having in-depth computer knowledge. Users are therefore
-encouraged to load and test the software's suitability as regards their
-requirements in conditions enabling the security of their systems and/or 
-data to be ensured and,  more generally, to use and operate it in the
-same conditions as regards security.
-
-The fact that you are presently reading this means that you have had
-knowledge of the CeCILL-C license and that you accept its terms.
 """
 
 # Usual Python packages
@@ -58,13 +25,14 @@ from kabl import paths
 from kabl import utils
 from kabl import graphics
 
+
 # LOAD AND PREPARE DATA
 # ========================
 
 # Load data
 # -----------
 
-NAMEXP = "Trappes_kmeans_K3_Igiven_1prof_RCS1"
+NAMEXP = "Brest_kmeans_K3_Igiven_1prof_RCS1"
 loc = NAMEXP.split("_")[0]
 paths.site = loc.upper()
 paths.namexp = NAMEXP
@@ -83,8 +51,8 @@ lcf = nc.Dataset(lidarFile)
 
 # Set up graphics outputs
 graphics.storeImages = False
-graphics.figureDir = paths.resultrootdir
-graphics.fmtImages = "_" + loc + "_test1.png"
+graphics.figureDir = "../../KABL-article/figures-workspace/"
+graphics.fmtImages = ".svg"
 
 # Colocate LIDAR and RS
 # -----------------------
@@ -119,7 +87,7 @@ blh_kabl, blh_adabl, blh_indus, mask_rain, mask_fog, cbh = var_lidar
 # ------------------
 
 ### Cloud
-cbh_threshold = 3000
+cbh_threshold = 2000
 MASK_CLOUD = np.logical_and(CBH[:] < cbh_threshold, CBH[:] > 0)
 mask_cloud = np.logical_and(cbh[:] < cbh_threshold, cbh[:] > 0)
 
@@ -268,32 +236,87 @@ graphics.plot_samplesize(ct6m,"6min")
 # Overall metrics
 # -----------------
 
+valid_blh_rs = blh_rs[~badvalues]
+rmse = lambda x,m:np.sqrt(np.nanmean((x[m]-valid_blh_rs[m])**2))
+corr = lambda x,m:np.corrcoef(x[m],valid_blh_rs[m])[0,1]
+
+# Average gap
 errl1_kabl = np.nanmean(np.abs(blh_kabl[~badvalues] - blh_rs[~badvalues]))
 errl1_adabl = np.nanmean(np.abs(blh_adabl[~badvalues] - blh_rs[~badvalues]))
 errl1_indus = np.nanmean(np.abs(blh_indus[~badvalues] - blh_rs[~badvalues]))
+
+# RMSE
 errl2_kabl = np.sqrt(np.nanmean((blh_kabl[~badvalues] - blh_rs[~badvalues]) ** 2))
 errl2_adabl = np.sqrt(np.nanmean((blh_adabl[~badvalues] - blh_rs[~badvalues]) ** 2))
 errl2_indus = np.sqrt(np.nanmean((blh_indus[~badvalues] - blh_rs[~badvalues]) ** 2))
-corr_kabl = np.corrcoef(
-    blh_kabl[np.logical_and(~np.isnan(blh_kabl), ~badvalues)],
-    blh_rs[np.logical_and(~np.isnan(blh_kabl), ~badvalues)],
-)[0, 1]
+ci_errl2_kabl = utils.bootstrap_confidence_interval(
+    rmse,
+    blh_kabl[~badvalues],
+    1000
+)
+ci_errl2_adabl = utils.bootstrap_confidence_interval(
+    rmse,
+    blh_adabl[~badvalues],
+    1000
+)
+ci_errl2_indus = utils.bootstrap_confidence_interval(
+    rmse,
+    blh_indus[~badvalues],
+    1000
+)
+ci_rmse = np.array(
+    [
+        [ci_errl2_kabl[0],ci_errl2_adabl[0],ci_errl2_indus[0]],
+        [ci_errl2_kabl[1],ci_errl2_adabl[1],ci_errl2_indus[1]],
+    ]
+)
+
+# Correlation
+badvalues = np.logical_or(badvalues,np.isnan(blh_adabl))
+valid_blh_rs = blh_rs[~badvalues]
+
+corr_kabl = corr(blh_kabl[~badvalues],np.arange(blh_kabl[~badvalues].size))
+corr_indus = np.corrcoef(blh_indus[~badvalues], blh_rs[~badvalues])[0, 1]
 corr_adabl = np.corrcoef(
     blh_adabl[np.logical_and(~np.isnan(blh_adabl), ~badvalues)],
     blh_rs[np.logical_and(~np.isnan(blh_adabl), ~badvalues)],
 )[0, 1]
-corr_indus = np.corrcoef(blh_indus[~badvalues], blh_rs[~badvalues])[0, 1]
 
+ci_corr_kabl = utils.bootstrap_confidence_interval(
+    corr,
+    blh_kabl[~badvalues],
+    1000
+)
+ci_corr_indus = utils.bootstrap_confidence_interval(
+    corr,
+    blh_indus[~badvalues],
+    1000
+)
+ci_corr_adabl = utils.bootstrap_confidence_interval(
+    corr,
+    blh_adabl[np.logical_and(~np.isnan(blh_adabl), ~badvalues)],
+    1000
+)
+ci_corr = np.array(
+    [
+        [ci_corr_kabl[0],ci_corr_adabl[0],ci_corr_indus[0]],
+        [ci_corr_kabl[1],ci_corr_adabl[1],ci_corr_indus[1]],
+    ]
+)
+
+# Bar charts
 graphics.bar_scores(
     [errl2_kabl, errl2_adabl, errl2_indus],
     scorename = "errl2",
     algos = ["KABL", "ADABL", "INDUS"],
+    lowupbounds = ci_rmse,
     colors=[color_kabl, color_adabl, color_indus]
 )
 graphics.bar_scores(
     [corr_kabl, corr_adabl, corr_indus],
     scorename = "corr",
     algos = ["KABL", "ADABL", "INDUS"],
+    lowupbounds = ci_corr,
     colors=[color_kabl, color_adabl, color_indus]
 )
 

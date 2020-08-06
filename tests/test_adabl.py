@@ -97,7 +97,7 @@ def test_train_adabl():
 
 def test_train_adabl_save():
     datasetfile = paths.file_labelleddataset()
-    train_adabl(datasetfile,saveResults = True)
+    train_adabl(datasetfile, saveResults = True)
     
     modelFile = os.path.join(paths.dir_trainedadabl(),"Classifier_AdaBoost_M200_D5_tzRCS0.pkl")
     scalerFile = os.path.join(paths.dir_trainedadabl(),"Scaler_tzRCS0.pkl")

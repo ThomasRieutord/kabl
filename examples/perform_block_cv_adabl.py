@@ -9,6 +9,8 @@ from kabl import paths
 from kabl import adabl
 from kabl import graphics
 
+# Demo
+#------
 datasetfile = paths.file_labelleddataset()
 df = pd.read_csv(datasetfile)
 predictors = ["sec0", "alti", "rcs1","rcs2"]
@@ -18,7 +20,8 @@ kf = KFold(n_splits=5)
 gkf = GroupKFold(n_splits=3)
 
 group=np.zeros_like(y)
-for itx in df.groupby(np.floor(df.sec0/(8*3600))).indices.items():
+chunk_size = 8*3600     # nb of seconds in each time chunk
+for itx in df.groupby(np.floor(df.sec0/chunk_size)).indices.items():
     grval,grdex = itx
     group[grdex]=int(grval)
 
@@ -31,6 +34,8 @@ for ii, (idx_train, idx_test) in enumerate(gkf.split(X=X, y=y, groups=group)):
     y_train = y[idx_train]
     y_test = y[idx_test]
 
+# Real estimation
+#-----------------
 accuracies, chronos, classifiers_keys = adabl.block_crossval(df,n_folds=6, predictors=predictors)
 
 graphics.estimator_quality(accuracies,chronos,classifiers_keys)

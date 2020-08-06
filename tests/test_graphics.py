@@ -85,7 +85,9 @@ clusterZTview(t_values,z_values,labels)
 # ---------------------
 
 scores = [0.22,0.34,0.76]
-bar_scores(scores,"corr")
+upbound = [0.26,0.71,0.84]
+lowbound = [0.04,0.16,0.45]
+bar_scores(scores,"corr",lowupbounds=np.array([lowbound,upbound]))
 
 # Test of plot_cv_indices
 # ---------------------
