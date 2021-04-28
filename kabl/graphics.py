@@ -78,7 +78,16 @@ def quicklook_data(nc_file, max_height=4500, with_pbl=False, with_cbh=False):
         cbh = dat["cloud_base_height"]
 
     plt.figure(figsize=(14, 7))
-    plt.pcolormesh(t, z, rcs.T, alpha=0.8, cmap="rainbow", vmin=-0.1, vmax=0.8)
+    plt.pcolormesh(
+        t,
+        z,
+        rcs.T,
+        alpha=0.8,
+        cmap="rainbow",
+        vmin=-0.1,
+        vmax=0.8,
+        shading="auto"
+    )
     if with_pbl:
         pbl[pbl == -999] = np.nan
         for layer in range(pbl.shape[1]):
@@ -93,7 +102,7 @@ def quicklook_data(nc_file, max_height=4500, with_pbl=False, with_cbh=False):
     axes.set_ylabel("Height (m agl)")
     plt.tight_layout()
     plt.grid(color="white", ls="solid")
-    plt.colorbar(label="Range corrected signal", alpha=0.8)
+    plt.colorbar(label="Range corrected signal")
 
     locs, labels = plt.xticks()
     labels = [dt.datetime.utcfromtimestamp(loc).strftime("%H:%M") for loc in locs]
@@ -284,8 +293,9 @@ def blhs_over_data(
         cmap="rainbow",
         vmin=-0.1,
         vmax=0.8,
+        shading="auto"
     )
-    plt.colorbar(alpha=0.5)
+    plt.colorbar()
     plt.grid(color="white", ls="solid")
 
     plt.title(titre)
@@ -604,7 +614,15 @@ def clusterZTview(t_values, z_values, zoneID, lineplot=None, titl=None):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     fig = plt.figure()
     plt.title(titl)
-    plt.pcolormesh(dt_values, z_values, zoneID.T, vmin=0, vmax=K, cmap=colormap)
+    plt.pcolormesh(
+        dt_values,
+        z_values,
+        zoneID.T,
+        vmin=0,
+        vmax=K,
+        cmap=colormap,
+        shading="auto"
+    )
     if lineplot is not None:
         plt.plot(dt_values, lineplot, 'k-')
     cbar = plt.colorbar(label="Cluster label")
@@ -709,7 +727,7 @@ def mean_by_month(datavaluesList, datatimesList, datanamesList=None, colorList=N
         )
 
         averages.append(gbm.mean().values)
-        effectifs.append(gbm.count())
+        effectifs.append(gbm.count().values)
 
     plt.xticks(gbm.mean().index, monthLabels)
     plt.grid()
@@ -814,7 +832,7 @@ def mean_by_6min(
         )
 
         averages.append(gbm.mean().values)
-        effectifs.append(gbm.count())
+        effectifs.append(gbm.count().values)
 
     plt.grid()
     plt.legend(loc="best")
