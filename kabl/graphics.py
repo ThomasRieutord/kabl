@@ -273,7 +273,7 @@ def blhs_over_data(
     day = dt.datetime.utcfromtimestamp(t_values[1]).strftime("%Y/%m/%d")
     date = dt.datetime.utcfromtimestamp(t_values[1]).strftime("%Y%m%d")
     if titre is None:
-        titre = "Lidar backscatter | " + day
+        titre = "Lidar backscatter (log10) | " + day
 
     fig = plt.figure(figsize=(10, 5))
     plt.pcolormesh(
@@ -539,7 +539,7 @@ def estimator_quality(
     return fig
 
 
-def clusterZTview(t_values, z_values, zoneID, titl=None):
+def clusterZTview(t_values, z_values, zoneID, lineplot=None, titl=None):
     """Plots cluster labels in the same time and altitude grid where
     measurements have been done
     
@@ -605,6 +605,8 @@ def clusterZTview(t_values, z_values, zoneID, titl=None):
     fig = plt.figure()
     plt.title(titl)
     plt.pcolormesh(dt_values, z_values, zoneID.T, vmin=0, vmax=K, cmap=colormap)
+    if lineplot is not None:
+        plt.plot(dt_values, lineplot, 'k-')
     cbar = plt.colorbar(label="Cluster label")
     cbar.set_ticks(cticks)
     cbar.set_ticklabels(cticklabels)
@@ -621,6 +623,7 @@ def clusterZTview(t_values, z_values, zoneID, titl=None):
     # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
     
     return fig
+
 
 def mean_by_month(datavaluesList, datatimesList, datanamesList=None, colorList=None):
     """Calculate and plot the average of all values in the same month.
