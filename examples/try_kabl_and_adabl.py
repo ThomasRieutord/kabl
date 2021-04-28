@@ -12,15 +12,13 @@ from kabl import adabl
 from kabl import paths
 
 # Usual Python packages
+import os
 import pickle
 import numpy as np
 import datetime as dt
-import pytz
-import sys
-import time
 import netCDF4 as nc
 
-
+# To load a specific day, change the loaded lidar file from default
 lidarFile = paths.file_defaultlidardata()
 rsFile = paths.file_blhfromrs()
 
@@ -34,9 +32,9 @@ blh_mnf = rcss["pbl"]
 # ----------------------
 params = utils.get_default_params()
 params["n_clusters"] = 3
-params["predictors"] = {"day": ["rcs_1"], "night": ["rcs_1","rcs_2"]}
+params["predictors"] = {"day": ["rcs_1"], "night": ["rcs_1"]}
 params["n_profiles"] = 1
-params["init"] = "advanced"
+params["init"] = "given"
 
 blh_kabl = core.blh_estimation(lidarFile, storeInNetcdf=False, params=params)
 

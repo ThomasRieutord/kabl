@@ -13,14 +13,15 @@ params = utils.get_default_params()
 params["init"]="advanced"
 params["n_inits"]=15
 
-testFile = paths.file_defaultlidardata()
+# To load a specific day, change the loaded lidar file from default
+lidarFile = paths.file_defaultlidardata()
 t_values, z_values, rcss = utils.extract_data(
-    testFile, to_extract=["rcs_1", "rcs_2"]
+    lidarFile, to_extract=["rcs_1", "rcs_2"]
 )
 rcs_1 = rcss["rcs_1"]
 rcs_2 = rcss["rcs_2"]
 
-blh,labels = core.blh_estimation_returnlabels(testFile, params=params)
+blh,labels = core.blh_estimation_returnlabels(lidarFile, params=params)
 
 graphics.blhs_over_data(t_values, z_values, rcs_1, blh)
-graphics.clusterZTview(t_values,z_values,labels)
+graphics.clusterZTview(t_values,z_values,labels, lineplot = blh)

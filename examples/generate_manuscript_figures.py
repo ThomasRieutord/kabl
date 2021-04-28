@@ -51,7 +51,7 @@ lcf = nc.Dataset(lidarFile)
 
 # Set up graphics outputs
 graphics.storeImages = False
-graphics.figureDir = "../../KABL-article/figures-workspace/"
+graphics.figureDir = paths.file_defaultlidardata()
 graphics.fmtImages = ".svg"
 
 # Colocate LIDAR and RS
@@ -87,7 +87,7 @@ blh_kabl, blh_adabl, blh_indus, mask_rain, mask_fog, cbh = var_lidar
 # ------------------
 
 ### Cloud
-cbh_threshold = 2000
+cbh_threshold = 3000
 MASK_CLOUD = np.logical_and(CBH[:] < cbh_threshold, CBH[:] > 0)
 mask_cloud = np.logical_and(cbh[:] < cbh_threshold, cbh[:] > 0)
 
