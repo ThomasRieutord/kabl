@@ -548,6 +548,25 @@ def block_crossval(
     
     classifiers_keys : list of str
         Names of the tested classifiers
+    
+    
+    Example
+    -------
+    >>> from kabl import paths
+    >>> from kabl.adabl import block_crossval
+    >>> dataset = paths.file_labelleddataset()
+    >>> acc, ct, algos = block_crossval(dataset, plot_on=True)
+    Classifier 0 / 5 RandomForestClassifier
+       \_Group8Fold: [########]
+    Classifier 1 / 5 KNeighborsClassifier
+       \_Group8Fold: [########]
+    Classifier 2 / 5 DecisionTreeClassifier
+       \_Group8Fold: [########]
+    Classifier 3 / 5 AdaBoostClassifier
+       \_Group8Fold: [########]
+    Classifier 4 / 5 LabelSpreading
+       \_Group8Fold: [########]
+    >>> print("Best algo :",algos[np.argmax(acc.mean(axis=1))])
     """
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.neighbors import KNeighborsClassifier
